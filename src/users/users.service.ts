@@ -58,7 +58,7 @@ export class UsersService {
   async remove(id: string) {
     const user = await this.findById(id);
 
-    //ELIMINADO EL USUARIO ENCONTRADO
+    // ELIMINADO EL USUARIO ENCONTRADO
     await user.updateOne({ isActive: false });
 
     return `User ${user.email} Delete!`;
