@@ -8,23 +8,23 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { CommonService } from 'src/common/common.service';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private _UserModel: Model<User>) {}
+  constructor(
+    @InjectModel(User.name) private _UserModel: Model<User>,
+    private readonly commonService: CommonService,
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const alredyExist = await this._UserModel.findOne({
-      email: createUserDto.email,
-    });
+    try {
+      const user = await this._UserModel.create(createUserDto);
 
-    if (alredyExist) {
-      throw new ConflictException(
-        `User with email ${createUserDto.email} already exists`,
-      );
+      return user;
+    } catch (error) {
+      this.commonService.handleExceptions(error);
     }
-
-    return this._UserModel.create(createUserDto);
   }
 
   findAll() {
@@ -32,10 +32,12 @@ export class UsersService {
   }
 
   async findById(id: string) {
-    const user = await this._UserModel.findOne({
-      _id: id,
-      isActive: true,
-    });
+    const user = await this._UserModel
+      .findOne({
+        _id: id,
+        isActive: true,
+      })
+      .exec();
 
     if (!user) throw new NotFoundException(`User with id ${id} not found`);
 
@@ -43,23 +45,14 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
-    const user = await this.findById(id);
+    try {
+      const user = await this.findById(id);
+      const updatedUser = await user.updateOne(updateUserDto);
 
-    //EXCLUIR AL USUARIO ACTUAL DE LA COMPROBACIÓN DE CORREOS DUPLICADOS
-    if (updateUserDto.email) {
-      const alredyExist = await this._UserModel.findOne({
-        email: updateUserDto.email,
-        _id: { $ne: id }
-      });
-  
-      if (alredyExist) {
-        throw new ConflictException(`User with email ${updateUserDto.email} already exists`);
-      }
+      return updatedUser;
+    } catch (error) {
+      this.commonService.handleExceptions(error);
     }
-
-    const updatedUser = await user.updateOne(updateUserDto);
-
-    return updatedUser;
   }
 
   async remove(id: string) {
