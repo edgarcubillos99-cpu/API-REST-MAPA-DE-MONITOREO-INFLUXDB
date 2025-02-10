@@ -11,27 +11,35 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ParsemongoidPipe } from 'src/common/pipes/parse-mongoid.pipe';
+import { Public } from 'src/common/decorator/public.decorator';
+import { AuthSwagger } from 'src/common/decorator/auth-swagger.decorator';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @AuthSwagger()
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
+  @Public()
   @Get()
   findAll() {
     return this.usersService.findAll();
   }
 
+  @Public()
   @Get(':id')
   findById(@Param('id', ParsemongoidPipe) id: string) {
     return this.usersService.findById(id);
   }
 
   @Patch(':id')
+  @AuthSwagger()
   update(
     @Param('id', ParsemongoidPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
@@ -40,6 +48,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @AuthSwagger()
   remove(@Param('id', ParsemongoidPipe) id: string) {
     return this.usersService.remove(id);
   }
