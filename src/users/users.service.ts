@@ -13,13 +13,13 @@ import { CommonService } from 'src/common/common.service';
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectModel(User.name) private _UserModel: Model<User>,
+    @InjectModel(User.name) private _userModel: Model<User>,
     private readonly commonService: CommonService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
     try {
-      const user = await this._UserModel.create(createUserDto);
+      const user = await this._userModel.create(createUserDto);
 
       return user;
     } catch (error) {
@@ -28,11 +28,11 @@ export class UsersService {
   }
 
   findAll() {
-    return this._UserModel.find({ isActive: true });
+    return this._userModel.find({ isActive: true });
   }
 
   async findById(id: string) {
-    const user = await this._UserModel
+    const user = await this._userModel
       .findOne({
         _id: id,
         isActive: true,

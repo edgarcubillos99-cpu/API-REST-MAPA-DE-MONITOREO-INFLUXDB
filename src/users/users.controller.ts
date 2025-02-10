@@ -27,7 +27,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParsemongoidPipe) id: string) {
+  findById(@Param('id', ParsemongoidPipe) id: string) {
     return this.usersService.findById(id);
   }
 
