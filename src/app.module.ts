@@ -8,6 +8,8 @@ import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guard/jwt-auth.guard';
+import { MapasModule } from './mapas/mapas.module';
+import { DevicesModule } from './devices/devices.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { JwtAuthGuard } from './common/guard/jwt-auth.guard';
     UsersModule,
     CommonModule,
     AuthModule,
+    MapasModule,
+    DevicesModule,
   ],
   controllers: [AppController],
   providers: [AppService,
