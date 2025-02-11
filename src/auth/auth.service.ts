@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -23,9 +24,15 @@ export class AuthService {
 
     const user = await this._userModel.findOne({ email });
 
+   
+
     // SI NO SE ENCUENTRA UN USUARIO CON ESE EMAIL
     if (!user)
       throw new NotFoundException(`User not found with email ${email}`);
+
+    // SI EL USUARIO ESTA INACTIVO 
+    if (!user?.isActive)
+      throw new ForbiddenException(`Your account ${email} is currently inactive`);
 
     const isMatch = await bcrypt.compare(password, user.password);
 
