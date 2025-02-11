@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -14,6 +15,7 @@ import { ParsemongoidPipe } from 'src/common/pipes/parse-mongoid.pipe';
 import { Public } from 'src/common/decorator/public.decorator';
 import { AuthSwagger } from 'src/common/decorator/auth-swagger.decorator';
 import { ApiTags } from '@nestjs/swagger';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @ApiTags('users')
 @Controller('users')
@@ -28,8 +30,8 @@ export class UsersController {
 
   @Public()
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.usersService.findAll(paginationDto);
   }
 
   @Public()

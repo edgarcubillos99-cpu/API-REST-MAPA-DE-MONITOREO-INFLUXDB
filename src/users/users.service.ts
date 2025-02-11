@@ -9,6 +9,7 @@ import { User } from './entities/user.entity';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { CommonService } from 'src/common/common.service';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class UsersService {
@@ -27,8 +28,34 @@ export class UsersService {
     }
   }
 
-  findAll() {
-    return this._userModel.find({ isActive: true });
+  async findAll(paginationDto: PaginationDto) {
+    const { limit = 10, offset = 0, name } = paginationDto;
+    let result: any;
+
+    if (name) {
+      result = await this._userModel
+        .find({
+          isActive: true,
+          $or: [
+            { email: { $regex: `^${name}`, $options: 'i' } },
+            { nombre: { $regex: `^${name}`, $options: 'i' } },
+            { apellido: { $regex: `^${name}`, $options: 'i' } },
+          ],
+        })
+        .skip(offset)
+        .limit(limit)
+        .exec();
+
+      return result;
+    }
+
+    result = await this._userModel
+      .find({ isActive: true })
+      .skip(offset)
+      .limit(limit)
+      .exec();
+
+    return result;
   }
 
   async findById(id: string) {

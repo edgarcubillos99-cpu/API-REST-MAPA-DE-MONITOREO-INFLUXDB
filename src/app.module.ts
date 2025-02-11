@@ -7,7 +7,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
-import { JwtAuthGuard } from './common/guard/jwtAuth.guard';
+import { JwtAuthGuard } from './common/guard/jwt-auth.guard';
 
 @Module({
   imports: [
