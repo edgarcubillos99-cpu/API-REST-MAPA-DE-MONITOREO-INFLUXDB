@@ -9,10 +9,10 @@ export class Mapa {
   nombre: string;
 
   @Prop()
-  latitud: String;
+  latitud: string;
 
   @Prop()
-  longitud: String;
+  longitud: string;
 
   @Prop({ type: Position, required: true, default: { x: 0, y: 0 } })
   position: Position;

@@ -30,7 +30,7 @@ export class Device {
   @Prop({ isRequired: true })
   StatusIcmp: string;
 
-  @Prop({ type: Boolean})
+  @Prop({ type: Boolean })
   Status: boolean;
 }
 

@@ -32,9 +32,7 @@ export class MapasService {
       result = await this._mapaModel
         .find({
           isActive: true,
-          $or: [
-            { nombre: { $regex: `^${name}`, $options: 'i' } },
-          ],
+          $or: [{ nombre: { $regex: `^${name}`, $options: 'i' } }],
         })
         .skip(offset)
         .limit(limit)
@@ -68,9 +66,9 @@ export class MapasService {
   async update(id: string, updateMapaDto: UpdateMapaDto) {
     try {
       const mapa = await this.findById(id);
-      const updatedmapa = await mapa.updateOne(updateMapaDto);
+      const updatedMapa = await mapa.updateOne(updateMapaDto);
 
-      return updatedmapa;
+      return updatedMapa;
     } catch (error) {
       this.commonService.handleExceptions(error);
     }

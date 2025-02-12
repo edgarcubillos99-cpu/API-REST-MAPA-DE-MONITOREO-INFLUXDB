@@ -32,12 +32,13 @@ UserSchema.pre('save', async function (next) {
   next();
 });
 
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 UserSchema.pre('updateOne', async function (next) {
   const update = this.getUpdate() as UpdateQuery<User>;
 
   if (update?.password) {
     update.password = await bcrypt.hash(update.password, 13);
   }
-  
+
   next();
 });
