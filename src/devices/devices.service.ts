@@ -6,17 +6,28 @@ import { Device } from './entities/device.entity';
 import { Model } from 'mongoose';
 import { CommonService } from 'src/common/common.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { MapasService } from 'src/mapas/mapas.service';
+import { Mapa } from 'src/mapas/entities/mapa.entity';
 
 @Injectable()
 export class DevicesService {
   constructor(
     @InjectModel(Device.name) private _deviceModel: Model<Device>,
+    @InjectModel(Mapa.name) private _mapaModel: Model<Mapa>,
     private readonly commonService: CommonService,
+    private readonly mapasService: MapasService,
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto) {
     try {
+      const mapa = await this.mapasService.findById(createDeviceDto.MapUUID);
       const device = await this._deviceModel.create(createDeviceDto);
+
+      //ACTUALIZANDO EL CAMPO DE DEVICES EN MAPAS
+      await mapa.updateOne({
+        $inc: { AmountDevices: 1 },
+        $push: { Devices: device._id },
+      });
 
       return device;
     } catch (error) {
@@ -76,6 +87,15 @@ export class DevicesService {
 
   async remove(id: string) {
     const device = await this.findById(id);
+
+    // ACTUALIZANDO EL MAPA PARA REMOVER EL DEVICE
+    await this._mapaModel.updateOne(
+      { _id: device.MapUUID },
+      {
+        $inc: { AmountDevices: -1 },
+        $pull: { Devices: device._id },
+      },
+    );
 
     // ELIMINADO EL DEVICE ENCONTRADO
     await device.updateOne({ isActive: false });

@@ -5,6 +5,7 @@ import {
   IsIn,
   IsNotEmpty,
   IsString,
+  Matches,
   ValidateNested,
 } from 'class-validator';
 import { PositionDto } from 'src/common/dto/position.dto';
@@ -35,6 +36,9 @@ export class CreateDeviceDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @Matches(/^[0-9a-fA-F]{24}$/, {
+    message: 'MapUUID debe ser un ObjectId válido de MongoDB',
+  })
   MapUUID: string;
 
   @ApiProperty()

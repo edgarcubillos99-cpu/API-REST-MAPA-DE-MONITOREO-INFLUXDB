@@ -12,5 +12,6 @@ import { CommonModule } from 'src/common/common.module';
   ],
   controllers: [MapasController],
   providers: [MapasService],
+  exports: [MapasService],
 })
 export class MapasModule {}

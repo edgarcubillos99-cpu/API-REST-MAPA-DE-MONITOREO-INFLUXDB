@@ -32,11 +32,6 @@ export class CreateMapaDto {
   @IsNotEmpty()
   position: PositionDto;
 
-  @ApiProperty({ type: [String], required: false })
-  @IsOptional()
-  @IsString({ each: true })
-  Devices?: string[];
-
   @ApiProperty()
   @IsNotEmpty()
   @IsString()

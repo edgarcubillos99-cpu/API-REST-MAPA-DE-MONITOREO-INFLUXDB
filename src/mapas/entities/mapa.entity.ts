@@ -25,6 +25,9 @@ export class Mapa {
   })
   Devices: Device[];
 
+  @Prop({ type: Number, default: 0 })
+  AmountDevices: number;
+
   @Prop({ isRequired: true })
   StatusDevices: string;
 }
