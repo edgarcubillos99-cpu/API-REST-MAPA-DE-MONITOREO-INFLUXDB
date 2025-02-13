@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
-import { InjectModel } from '@nestjs/mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Device } from './entities/device.entity';
-import { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { CommonService } from 'src/common/common.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { MapasService } from 'src/mapas/mapas.service';
@@ -14,24 +14,39 @@ export class DevicesService {
   constructor(
     @InjectModel(Device.name) private _deviceModel: Model<Device>,
     @InjectModel(Mapa.name) private _mapaModel: Model<Mapa>,
+    @InjectConnection() private readonly connection: mongoose.Connection,
     private readonly commonService: CommonService,
     private readonly mapasService: MapasService,
   ) {}
 
   async create(createDeviceDto: CreateDeviceDto) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
     try {
       const mapa = await this.mapasService.findById(createDeviceDto.MapUUID);
-      const device = await this._deviceModel.create(createDeviceDto);
+      const device = await this._deviceModel.create([createDeviceDto], {
+        session,
+      });
 
       //ACTUALIZANDO EL CAMPO DE DEVICES EN MAPAS
-      await mapa.updateOne({
-        $inc: { AmountDevices: 1 },
-        $push: { Devices: device._id },
-      });
+      await mapa
+        .updateOne({
+          $inc: { AmountDevices: 1 },
+          $push: { Devices: device[0]._id },
+        })
+        .session(session);
+
+      // CONFIRMANDO LA TRANSACCION
+      await session.commitTransaction();
 
       return device;
     } catch (error) {
       this.commonService.handleExceptions(error);
+      // ABORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
+      session.abortTransaction();
+    } finally {
+      await session.endSession();
     }
   }
 
@@ -86,20 +101,39 @@ export class DevicesService {
   }
 
   async remove(id: string) {
-    const device = await this.findById(id);
+    const session = await this.connection.startSession();
+    session.startTransaction();
 
-    // ACTUALIZANDO EL MAPA PARA REMOVER EL DEVICE
-    await this._mapaModel.updateOne(
-      { _id: device.MapUUID },
-      {
-        $inc: { AmountDevices: -1 },
-        $pull: { Devices: device._id },
-      },
-    );
+    try {
+      const device = await this.findById(id);
 
-    // ELIMINADO EL DEVICE ENCONTRADO
-    await device.updateOne({ isActive: false });
+      // ACTUALIZANDO EL MAPA PARA REMOVER EL DEVICE
+      await this._mapaModel
+        .updateOne(
+          {
+            _id: device.MapUUID,
+            Devices: device._id, // VERIFICA DEVICE EXISTA EN ARREGLO, SI NO EXISTE NO DISMINUYA EL CONTADOR AmountDevices
+          },
+          {
+            $inc: { AmountDevices: -1 },
+            $pull: { Devices: device._id },
+          },
+        )
+        .session(session);
 
-    return `Device ${device.nombre} Delete!`;
+      // ELIMINADO EL DEVICE ENCONTRADO
+      await device.updateOne({ isActive: false }).session(session);
+
+      // CONFIRMANDO LA TRANSACCION
+      await session.commitTransaction();
+
+      return `Device ${device.nombre} Delete!`;
+    } catch (error) {
+      this.commonService.handleExceptions(error);
+      // ABORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
+      session.abortTransaction();
+    } finally {
+      await session.endSession();
+    }
   }
 }
