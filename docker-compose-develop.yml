@@ -8,6 +8,8 @@ services:
       - "27020:27017"
     networks:
       - mdm-net
+    volumes:
+      - mongo1-mdm:/data/db
 
   mongo-init:
     image: mongo:6.0
@@ -24,6 +26,27 @@ services:
     networks:
       - mdm-net
 
+  mdmbackend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3003:${PORT}"
+    environment:
+      MONGODB_CONNECT: mongodb://mongo1:27017/MDM?directConnection=true&replicaSet=rs0
+      ENTORNO: ${ENTORNO}
+      PORT: ${PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+    depends_on:
+      - mongo1
+      - mongo-init
+    networks:
+      - mdm-net
+
 networks:
   mdm-net:
     driver: bridge
+
+volumes:
+  mongo1-mdm:
