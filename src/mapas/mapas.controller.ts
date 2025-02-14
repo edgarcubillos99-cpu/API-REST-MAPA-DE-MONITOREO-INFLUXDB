@@ -40,6 +40,12 @@ export class MapasController {
     return this.mapasService.findById(id);
   }
 
+  @Public()
+  @Get(':id/devices')
+  findAllDevicesInMapa(@Param('id', ParsemongoidPipe) id: string) {
+    return this.mapasService.findAllDevicesInMapa(id);
+  }
+
   @Patch(':id')
   @AuthSwagger()
   update(

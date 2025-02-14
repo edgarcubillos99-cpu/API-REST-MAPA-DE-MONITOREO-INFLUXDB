@@ -63,6 +63,18 @@ export class MapasService {
     return mapa;
   }
 
+  async findAllDevicesInMapa(id: string) {
+    const mapa = await this._mapaModel
+      .findOne({ _id: id, isActive: true })
+      .populate({ path: 'Devices' })
+      .select('Devices')
+      .exec();
+
+    if (!mapa) throw new NotFoundException(`Mapa with id ${id} not found`);
+
+    return mapa.Devices;
+  }
+
   async update(id: string, updateMapaDto: UpdateMapaDto) {
     try {
       const mapa = await this.findById(id);
