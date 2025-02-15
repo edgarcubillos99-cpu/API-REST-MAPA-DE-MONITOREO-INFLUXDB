@@ -38,6 +38,7 @@ export class UsersService {
             { apellido: { $regex: `^${name}`, $options: 'i' } },
           ],
         })
+        .select(['-password', '-__v'])
         .skip(offset)
         .limit(limit)
         .exec();
@@ -47,6 +48,7 @@ export class UsersService {
 
     result = await this._userModel
       .find({ isActive: true })
+      .select(['-password', '-__v'])
       .skip(offset)
       .limit(limit)
       .exec();
@@ -60,6 +62,7 @@ export class UsersService {
         _id: id,
         isActive: true,
       })
+      .select(['-password', '-__v'])
       .exec();
 
     if (!user) throw new NotFoundException(`User with id ${id} not found`);
