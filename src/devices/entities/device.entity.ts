@@ -12,7 +12,7 @@ export class Device {
   description: string;
 
   @Prop()
-  make: string; // MikroTik, HPE, Ubiquiti, Cambium, Juniper, TpLink
+  make: string; // MikroTik, HPE, Ubiquiti, Cambium, Juniper, TpLink, ICT, TPDIN
 
   @Prop({ isRequired: true })
   name: string;
@@ -32,6 +32,9 @@ export class Device {
 
   @Prop({ isRequired: true })
   StatusIcmp: string;
+
+  @Prop({ isRequired: true, default: 161 })
+  portsnmp: number;
 
   @Prop({ type: Boolean })
   Status: boolean;

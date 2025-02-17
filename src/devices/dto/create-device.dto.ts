@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsIn,
   IsNotEmpty,
+  IsNumber,
   IsString,
   Matches,
   ValidateNested,
@@ -62,6 +63,11 @@ export class CreateDeviceDto {
   @IsString()
   @IsIn([STATUS.UP, STATUS.DOWN])
   StatusIcmp: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumber()
+  portsnmp: number;
 
   @ApiProperty()
   @IsNotEmpty()

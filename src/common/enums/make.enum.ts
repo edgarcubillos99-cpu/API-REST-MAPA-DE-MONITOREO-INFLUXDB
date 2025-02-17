@@ -5,4 +5,6 @@ export enum MAKE {
   CAMBIUM = 'Cambium',
   JUNIPER = 'Juniper',
   TPLINK = 'TpLink',
+  ICT = 'ICT',
+  TPDIN = 'TPDIN',
 }
