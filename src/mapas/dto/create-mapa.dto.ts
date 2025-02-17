@@ -14,17 +14,17 @@ export class CreateMapaDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  nombre: string;
+  name: string;
 
   @ApiProperty()
   @IsString()
   @IsOptional()
-  latitud?: string;
+  latitude?: string;
 
   @ApiProperty()
   @IsString()
   @IsOptional()
-  longitud?: string;
+  longitude?: string;
 
   @ApiProperty({ type: PositionDto })
   @ValidateNested()

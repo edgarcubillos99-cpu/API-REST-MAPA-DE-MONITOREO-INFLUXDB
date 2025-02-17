@@ -9,6 +9,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { PositionDto } from 'src/common/dto/position.dto';
+import { MAKE } from 'src/common/enums/make.enum';
 import { STATUS } from 'src/common/enums/status.enum';
 
 export class CreateDeviceDto {
@@ -20,12 +21,25 @@ export class CreateDeviceDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  descripcion: string;
+  description: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  nombre: string;
+  @IsIn([
+    MAKE.MIKROTIK,
+    MAKE.HPE,
+    MAKE.UBIQUITI,
+    MAKE.CAMBIUM,
+    MAKE.JUNIPER,
+    MAKE.TPLINK,
+  ])
+  make: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  name: string;
 
   @ApiProperty({ type: PositionDto })
   @ValidateNested()
@@ -51,4 +65,9 @@ export class CreateDeviceDto {
   @IsNotEmpty()
   @IsBoolean()
   Status: boolean;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  community: string;
 }

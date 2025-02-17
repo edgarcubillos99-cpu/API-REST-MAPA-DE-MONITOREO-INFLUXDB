@@ -32,7 +32,7 @@ export class MapasService {
       result = await this._mapaModel
         .find({
           isActive: true,
-          $or: [{ nombre: { $regex: `^${name}`, $options: 'i' } }],
+          $or: [{ name: { $regex: `^${name}`, $options: 'i' } }],
         })
         .skip(offset)
         .limit(limit)
@@ -92,6 +92,6 @@ export class MapasService {
     // ELIMINADO EL MAPA ENCONTRADO
     await mapa.updateOne({ isActive: false });
 
-    return `Mapa ${mapa.nombre} Delete!`;
+    return `Mapa ${mapa.name} Delete!`;
   }
 }

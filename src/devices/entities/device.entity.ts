@@ -9,10 +9,13 @@ export class Device {
   ip: string;
 
   @Prop()
-  descripcion: string;
+  description: string;
+
+  @Prop()
+  make: string; // MikroTik, HPE, Ubiquiti, Cambium, Juniper, TpLink
 
   @Prop({ isRequired: true })
-  nombre: string;
+  name: string;
 
   @Prop({ type: Position, required: true, default: { x: 0, y: 0 } })
   position: Position;
@@ -32,6 +35,9 @@ export class Device {
 
   @Prop({ type: Boolean })
   Status: boolean;
+
+  @Prop({ type: String })
+  community: string;
 }
 
 export const DeviceSchema = SchemaFactory.createForClass(Device);

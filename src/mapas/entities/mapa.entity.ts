@@ -6,13 +6,13 @@ import { Device } from 'src/devices/entities/device.entity';
 @Schema({ timestamps: true })
 export class Mapa {
   @Prop({ isRequired: true, unique: true })
-  nombre: string;
+  name: string;
 
   @Prop()
-  latitud: string;
+  latitude: string;
 
   @Prop()
-  longitud: string;
+  longitude: string;
 
   @Prop({ type: Position, required: true, default: { x: 0, y: 0 } })
   position: Position;

@@ -5,10 +5,10 @@ import { UpdateQuery } from 'mongoose';
 @Schema({ timestamps: true })
 export class User {
   @Prop({ isRequired: true })
-  nombre: string;
+  firstName: string;
 
   @Prop({ isRequired: true })
-  apellido: string;
+  lastName: string;
 
   @Prop({ lowercase: true, required: true, unique: true })
   email: string;

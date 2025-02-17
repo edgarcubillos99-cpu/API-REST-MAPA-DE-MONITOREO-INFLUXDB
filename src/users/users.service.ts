@@ -51,8 +51,8 @@ export class UsersService {
           isActive: true,
           $or: [
             { email: { $regex: `^${name}`, $options: 'i' } },
-            { nombre: { $regex: `^${name}`, $options: 'i' } },
-            { apellido: { $regex: `^${name}`, $options: 'i' } },
+            { firstName: { $regex: `^${name}`, $options: 'i' } },
+            { lastName: { $regex: `^${name}`, $options: 'i' } },
           ],
         })
         .select(['-password', '-__v'])

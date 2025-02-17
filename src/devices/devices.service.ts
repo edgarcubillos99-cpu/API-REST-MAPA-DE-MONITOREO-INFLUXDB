@@ -58,7 +58,7 @@ export class DevicesService {
       result = await this._deviceModel
         .find({
           isActive: true,
-          $or: [{ nombre: { $regex: `^${name}`, $options: 'i' } }],
+          $or: [{ name: { $regex: `^${name}`, $options: 'i' } }],
         })
         .skip(offset)
         .limit(limit)
@@ -127,7 +127,7 @@ export class DevicesService {
       // CONFIRMANDO LA TRANSACCION
       await session.commitTransaction();
 
-      return `Device ${device.nombre} Delete!`;
+      return `Device ${device.name} Delete!`;
     } catch (error) {
       this.commonService.handleExceptions(error);
       // ABORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
