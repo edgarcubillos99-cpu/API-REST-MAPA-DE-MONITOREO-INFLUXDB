@@ -16,6 +16,23 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto) {
     try {
+      // BUSCANDO SI EL USUARIO ESTA DESACTIVADO
+      const foundUserDesactivate = await this._userModel.findOne({
+        isActive: false,
+        $or: [{ email: createUserDto.email }],
+      });
+
+      if (foundUserDesactivate) {
+        // ACTUALIZANDO EL USUARIO DESACTIVADO
+        await foundUserDesactivate.updateOne({
+          isActive: true,
+          ...createUserDto,
+        });
+        // RETORNAMOS EL USUARIO ACTUALIZADO
+        return await this._userModel.findById(foundUserDesactivate._id);
+      }
+
+      // SI NO EXISTE, INSTANCIAMOS Y GUARDAMOS EL OBJETO NUEVO
       const user = await this._userModel.create(createUserDto);
 
       return user;

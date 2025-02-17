@@ -24,8 +24,6 @@ export class AuthService {
 
     const user = await this._userModel.findOne({ email });
 
-   
-
     // SI NO SE ENCUENTRA UN USUARIO CON ESE EMAIL
     if (!user)
       throw new NotFoundException(`User not found with email ${email}`);
