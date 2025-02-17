@@ -10,6 +10,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './common/guard/jwt-auth.guard';
 import { MapasModule } from './mapas/mapas.module';
 import { DevicesModule } from './devices/devices.module';
+import { EnlacesModule } from './enlaces/enlaces.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { DevicesModule } from './devices/devices.module';
     AuthModule,
     MapasModule,
     DevicesModule,
+    EnlacesModule,
   ],
   controllers: [AppController],
   providers: [AppService,

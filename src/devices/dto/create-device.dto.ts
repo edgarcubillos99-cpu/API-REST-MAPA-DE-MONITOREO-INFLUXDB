@@ -33,6 +33,8 @@ export class CreateDeviceDto {
     MAKE.CAMBIUM,
     MAKE.JUNIPER,
     MAKE.TPLINK,
+    MAKE.ICT,
+    MAKE.TPDIN,
   ])
   make: string;
 
