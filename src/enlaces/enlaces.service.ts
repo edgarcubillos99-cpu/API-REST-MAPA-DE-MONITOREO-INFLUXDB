@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateEnlaceDto } from './dto/create-enlace.dto';
 import { UpdateEnlaceDto } from './dto/update-enlace.dto';
 import { Enlace } from './entities/enlace.entity';
@@ -49,15 +49,36 @@ export class EnlacesService {
     return result;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} enlace`;
+  async findById(id: string) {
+    const enlace = await this._enlaceModel
+      .findOne({
+        _id: id,
+        isActive: true,
+      })
+      .exec();
+
+    if (!enlace) throw new NotFoundException(`Enlace with id ${id} not found`);
+
+    return enlace;
   }
 
-  update(id: number, updateEnlaceDto: UpdateEnlaceDto) {
-    return `This action updates a #${id} enlace`;
+  async update(id: string, updateEnlaceDto: UpdateEnlaceDto) {
+    try {
+      const enlace = await this.findById(id);
+      const updatedEnlace = await enlace.updateOne(updateEnlaceDto);
+
+      return updatedEnlace;
+    } catch (error) {
+      this.commonService.handleExceptions(error);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} enlace`;
+  async remove(id: string) {
+    const enlace = await this.findById(id);
+
+    // ELIMINADO EL ENLACE ENCONTRADO
+    await enlace.updateOne({ isActive: false });
+
+    return `Enlace ${enlace._id} Delete!`;
   }
 }

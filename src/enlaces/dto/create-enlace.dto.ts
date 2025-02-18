@@ -48,4 +48,9 @@ export class CreateEnlaceDto {
   @IsNotEmpty()
   @IsNumber()
   idsnmp: number;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  lastStatusEnlance: string;
 }
