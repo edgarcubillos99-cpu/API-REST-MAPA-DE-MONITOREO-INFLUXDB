@@ -25,7 +25,7 @@ export class Enlace {
   idsnmp: number; // 1,2,3,4
 
   @Prop({ type: String })
-  lastStatusEnlance: string;
+  lastStatus: string;
 
   @Prop({ type: Boolean, default: true })
   isActive: boolean;

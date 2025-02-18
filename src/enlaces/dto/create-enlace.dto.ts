@@ -52,5 +52,5 @@ export class CreateEnlaceDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  lastStatusEnlance: string;
+  lastStatus: string;
 }
