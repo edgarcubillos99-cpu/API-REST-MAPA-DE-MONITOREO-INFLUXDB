@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsNotEmpty, IsNumber, IsString, Matches } from 'class-validator';
+import {
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
+} from 'class-validator';
 import { MEDIO_TRANSMICION } from 'src/common/enums/medio-transmicion.enum';
 
 export class CreateEnlaceDto {
@@ -50,7 +57,17 @@ export class CreateEnlaceDto {
   idsnmp: number;
 
   @ApiProperty()
-  @IsNotEmpty()
   @IsString()
-  lastStatus: string;
+  @IsOptional()
+  @IsIn([
+    'up',
+    'down',
+    'testing',
+    'unknown',
+    'dormant',
+    'notPresent',
+    'lowerLayerDown',
+    'none',
+  ])
+  lastStatus?: string;
 }
