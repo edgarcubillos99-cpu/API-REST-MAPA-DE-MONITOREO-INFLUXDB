@@ -70,4 +70,12 @@ export class CreateEnlaceDto {
     'none',
   ])
   lastStatus?: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsOptional()
+  @Matches(/^[0-9a-fA-F]{24}$/, {
+    message: 'MapUUID debe ser un ObjectId válido de MongoDB',
+  })
+  MapUUID?: string;
 }
