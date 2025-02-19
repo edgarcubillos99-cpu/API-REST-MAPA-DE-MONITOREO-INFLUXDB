@@ -133,7 +133,7 @@ export class EnlacesService {
         ifPhysAddress: '1.3.6.1.2.1.2.2.1.6', // Dirección MAC
         ifMtu: '1.3.6.1.2.1.2.2.1.4', // MTU
         ifOperStatus: '1.3.6.1.2.1.2.2.1.8', // Estado de la interfaz
-        modulationSpeed: '1.3.6.1.2.1.2.2.1.5', // OID de velocidad de modulación (ajustar si es necesario)
+        modulationSpeed: '1.3.6.1.2.1.31.1.1.1.15', // OID de velocidad de modulación (ajustar si es necesario)
       };
 
       const interfaces: Record<string, any> = {};
@@ -173,7 +173,7 @@ export class EnlacesService {
                       interfaces[ifIndex]['status'] = vb.value;
                       break;
                     case 'modulationSpeed':
-                      interfaces[ifIndex]['modulationspeed'] = vb.value;
+                      interfaces[ifIndex]['modulationspeed'] = vb.value / 10;
                       break;
                   }
                 }
