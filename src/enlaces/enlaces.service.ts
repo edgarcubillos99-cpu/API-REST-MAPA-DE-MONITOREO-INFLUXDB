@@ -6,6 +6,8 @@ import { CommonService } from 'src/common/common.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { formatMacAddress } from 'src/common/utils/format-macaddress.util';
+var snmp = require('net-snmp');
 
 @Injectable()
 export class EnlacesService {
@@ -80,5 +82,123 @@ export class EnlacesService {
     await enlace.updateOne({ isActive: false });
 
     return `Enlace ${enlace._id} Delete!`;
+  }
+
+  snmpQuerySubtreeSimple(ip: string) {
+    const community = 'osnsnmpro';
+    const session = snmp.createSession(ip, community, {
+      version: snmp.Version2c,
+      timeout: 1000,
+    });
+
+    const ifDescrOID = '1.3.6.1.2.1.2.2.1.2';
+
+    function feedCb(varbinds) {
+      varbinds.forEach((vb) => {
+        if (snmp.isVarbindError(vb)) {
+          console.error(`Error con OID ${vb.oid}: ${snmp.varbindError(vb)}`);
+        } else {
+          console.log(`OID: ${vb.oid} -> Interface: ${vb.value.toString()}`);
+        }
+      });
+    }
+
+    function doneCb(error) {
+      if (error) {
+        console.error(`Error en la operación SNMP: ${error.toString()}`);
+      } else {
+        console.log('Operación SNMP completada exitosamente.');
+      }
+      session.close();
+    }
+
+    const maxRepetitions = 20;
+    session.subtree(ifDescrOID, maxRepetitions, feedCb, doneCb);
+
+    session.on('error', (error) => {
+      console.error(`Error en la sesión SNMP: ${error.toString()}`);
+    });
+  }
+
+  snmpQuerySubtree(ip: string): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      const community = 'osnsnmpro';
+      const session = snmp.createSession(ip, community, {
+        version: snmp.Version2c,
+        timeout: 1000,
+      });
+
+      const oids = {
+        ifDescr: '1.3.6.1.2.1.2.2.1.2', // Nombre de la interfaz
+        ifPhysAddress: '1.3.6.1.2.1.2.2.1.6', // Dirección MAC
+        ifMtu: '1.3.6.1.2.1.2.2.1.4', // MTU
+        ifOperStatus: '1.3.6.1.2.1.2.2.1.8', // Estado de la interfaz
+        modulationSpeed: '1.3.6.1.2.1.2.2.1.5', // OID de velocidad de modulación (ajustar si es necesario)
+      };
+
+      const interfaces: Record<string, any> = {};
+      let completedWalks = 0; // Contador de OIDs completados
+
+      function subtreeOid(oid: string, key: string) {
+        session.subtree(
+          oid,
+          20,
+          (varbinds) => {
+            varbinds.forEach((vb) => {
+              if (snmp.isVarbindError(vb)) {
+                console.error(`Error con OID ${oid}: ${snmp.varbindError(vb)}`);
+              } else {
+                const ifIndex = vb.oid.split('.').pop();
+
+                if (ifIndex) {
+                  if (!interfaces[ifIndex]) {
+                    interfaces[ifIndex] = {};
+                  }
+
+                  // ASIGNAR VALORES CON NOMBRES PERSONALIZADOS
+                  switch (key) {
+                    case 'ifPhysAddress':
+                      interfaces[ifIndex]['macaddress'] =
+                        vb.value instanceof Buffer
+                          ? formatMacAddress(vb.value)
+                          : vb.value.toString();
+                      break;
+                    case 'ifDescr':
+                      interfaces[ifIndex]['name'] = vb.value.toString();
+                      break;
+                    case 'ifMtu':
+                      interfaces[ifIndex]['mtu'] = vb.value;
+                      break;
+                    case 'ifOperStatus':
+                      interfaces[ifIndex]['status'] = vb.value;
+                      break;
+                    case 'modulationSpeed':
+                      interfaces[ifIndex]['modulationspeed'] = vb.value;
+                      break;
+                  }
+                }
+              }
+            });
+          },
+          () => {
+            completedWalks++;
+            if (completedWalks === Object.keys(oids).length) {
+              session.close();
+              const result = Object.values(interfaces);
+              resolve(result);
+            }
+          },
+        );
+      }
+
+      // EJECUTAR subtree PARA CADA OID
+      Object.entries(oids).forEach(([key, oid]) => {
+        subtreeOid(oid, key);
+      });
+
+      session.on('error', (error) => {
+        reject(`Error en la sesión SNMP: ${error.toString()}`);
+      });
+    });
   }
 }

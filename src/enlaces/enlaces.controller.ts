@@ -16,6 +16,7 @@ import { AuthSwagger } from 'src/common/decorator/auth-swagger.decorator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Public } from 'src/common/decorator/public.decorator';
 import { ParsemongoidPipe } from 'src/common/pipes/parse-mongoid.pipe';
+import { ValidateIpv4Pipe } from 'src/common/pipes/validate-ipv4.pipe';
 
 @ApiTags('enlaces')
 @Controller('enlaces')
@@ -38,6 +39,11 @@ export class EnlacesController {
   @Get(':id')
   findById(@Param('id', ParsemongoidPipe) id: string) {
     return this.enlacesService.findById(id);
+  }
+
+  @Get('snmp/:ip')
+  snmp(@Param('ip', ValidateIpv4Pipe) ip: string) {
+    return this.enlacesService.snmpQuerySubtree(ip);
   }
 
   @Patch(':id')
