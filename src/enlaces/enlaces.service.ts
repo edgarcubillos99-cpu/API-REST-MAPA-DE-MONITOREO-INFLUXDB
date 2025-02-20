@@ -3,25 +3,61 @@ import { CreateEnlaceDto } from './dto/create-enlace.dto';
 import { UpdateEnlaceDto } from './dto/update-enlace.dto';
 import { Enlace } from './entities/enlace.entity';
 import { CommonService } from 'src/common/common.service';
-import { InjectModel } from '@nestjs/mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { formatMacAddress } from 'src/common/utils/format-macaddress.util';
+import { DestinationEnlace } from './entities/destination-enlace.entity';
+import mongoose from 'mongoose';
 var snmp = require('net-snmp');
 
 @Injectable()
 export class EnlacesService {
   constructor(
     @InjectModel(Enlace.name) private _enlaceModel: Model<Enlace>,
+    @InjectModel(DestinationEnlace.name)
+    private _destinationEnlaceModel: Model<DestinationEnlace>,
     private readonly commonService: CommonService,
+    @InjectConnection() private readonly connection: mongoose.Connection,
   ) {}
-  async create(createEnlaceDto: CreateEnlaceDto) {
-    try {
-      const enlace = await this._enlaceModel.create(createEnlaceDto);
 
-      return enlace;
+  async create(createEnlaceDto: CreateEnlaceDto) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
+    try {
+      // CREAR LAS INSTANCIAS DE DestinationEnlace Y OBTENER SUS _id
+      const destinationEnlaces = await this._destinationEnlaceModel.insertMany(
+        createEnlaceDto.DevicesInterfacesDestination.map((device) => ({
+          DeviceDestino: new mongoose.Types.ObjectId(device.DeviceDestino),
+          InterfaceDestino: device.InterfaceDestino,
+        })),
+        { session },
+      );
+
+      // CREAR EL ENLACE CON LOS ObjectId DE LOS DestinationEnlace
+      const enlace = await this._enlaceModel.create(
+        [
+          {
+            ...createEnlaceDto,
+            DevicesInterfacesDestination: destinationEnlaces.map((d) => d._id), // SOLO PASAMOS LOS _id
+          },
+        ],
+        { session },
+      );
+
+      // CONFIRMANDO LA TRANSACCION
+      await session.commitTransaction();
+
+      console.log(enlace);
+
+      return enlace[0];
     } catch (error) {
       this.commonService.handleExceptions(error);
+      // ABORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
+      session.abortTransaction();
+    } finally {
+      await session.endSession();
     }
   }
 

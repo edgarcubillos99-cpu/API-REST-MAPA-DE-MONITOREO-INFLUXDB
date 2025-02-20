@@ -6,8 +6,27 @@ import {
   IsOptional,
   IsString,
   Matches,
+  ValidateNested,
+  IsArray,
+  IsMongoId,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { MEDIO_TRANSMICION } from 'src/common/enums/medio-transmicion.enum';
+
+class DeviceInterfaceDestinationDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  @Matches(/^[0-9a-fA-F]{24}$/, {
+    message: 'DeviceDestino debe ser un ObjectId válido de MongoDB',
+  })
+  DeviceDestino: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  InterfaceDestino: string;
+}
 
 export class CreateEnlaceDto {
   @ApiProperty()
@@ -26,20 +45,7 @@ export class CreateEnlaceDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  @Matches(/^[0-9a-fA-F]{24}$/, {
-    message: 'DeviceDestino debe ser un ObjectId válido de MongoDB',
-  })
-  DeviceDestino: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   InterfaceOrigen: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  InterfaceDestino: string;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -57,8 +63,8 @@ export class CreateEnlaceDto {
   idsnmp: number;
 
   @ApiProperty()
-  @IsString()
   @IsOptional()
+  @IsString()
   @IsIn([
     'up',
     'down',
@@ -69,13 +75,20 @@ export class CreateEnlaceDto {
     'lowerLayerDown',
     'none',
   ])
-  lastStatus?: string;
+  lastStatus: string;
 
-  @ApiProperty()
-  @IsString()
+  @ApiProperty({ type: [String], required: false })
   @IsOptional()
-  @Matches(/^[0-9a-fA-F]{24}$/, {
+  @IsArray()
+  @IsMongoId({
+    each: true,
     message: 'MapUUID debe ser un ObjectId válido de MongoDB',
   })
-  MapUUID?: string;
+  MapUUID?: string[];
+
+  @ApiProperty({ type: [DeviceInterfaceDestinationDto] })
+  @ValidateNested({ each: true })
+  @IsArray()
+  @Type(() => DeviceInterfaceDestinationDto)
+  DevicesInterfacesDestination: DeviceInterfaceDestinationDto[];
 }
