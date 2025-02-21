@@ -41,6 +41,24 @@ export class Device {
 
   @Prop({ type: String })
   community: string;
+
+  @Prop({
+    type: Object,
+    default: {
+      count: 8,
+      intervall: 100,
+      sumTimeOut: 1200,
+      percentLostPackage: 70,
+      sitesPackage: 64,
+    },
+  })
+  PingConfig: {
+    count: number;
+    intervall: number;
+    sumTimeOut: number;
+    percentLostPackage: number;
+    sitesPackage: number;
+  };
 }
 
 export const DeviceSchema = SchemaFactory.createForClass(Device);
