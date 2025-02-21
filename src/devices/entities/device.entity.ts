@@ -49,7 +49,7 @@ export class Device {
       intervall: 100,
       sumTimeOut: 1200,
       percentLostPackage: 70,
-      sitesPackage: 64,
+      sizePackage: 64,
     },
   })
   PingConfig: {
@@ -57,7 +57,7 @@ export class Device {
     intervall: number;
     sumTimeOut: number;
     percentLostPackage: number;
-    sitesPackage: number;
+    sizePackage: number;
   };
 }
 

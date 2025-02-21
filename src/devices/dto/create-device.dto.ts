@@ -33,7 +33,7 @@ export class PingConfigDto {
 
   @ApiProperty({ default: 64 })
   @IsNumber()
-  sitesPackage: number;
+  sizePackage: number;
 }
 
 export class CreateDeviceDto {
