@@ -49,8 +49,6 @@ export class EnlacesService {
       // CONFIRMANDO LA TRANSACCION
       await session.commitTransaction();
 
-      console.log(enlace);
-
       return enlace[0];
     } catch (error) {
       this.commonService.handleExceptions(error);
@@ -114,8 +112,26 @@ export class EnlacesService {
   async remove(id: string) {
     const enlace = await this.findById(id);
 
+    const destinationEnlaces = enlace.DevicesInterfacesDestination;
+
+    // ACTUALIZANDO MapUUID y DevicesDestination ELEMENTOS DEL ARREGLO
+    await this._enlaceModel.updateOne(
+      { _id: enlace._id },
+      {
+        $pullAll: {
+          DevicesInterfacesDestination: destinationEnlaces,
+          MapUUID: enlace.MapUUID,
+        },
+      },
+    );
+
     // ELIMINADO EL ENLACE ENCONTRADO
     await enlace.updateOne({ isActive: false });
+
+    await this._destinationEnlaceModel.updateMany(
+      { _id: { $in: destinationEnlaces } },
+      { isActive: false },
+    );
 
     return `Enlace ${enlace._id} Delete!`;
   }
