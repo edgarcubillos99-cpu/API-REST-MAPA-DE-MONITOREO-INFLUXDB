@@ -1,8 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayUnique,
+  IsArray,
   IsBoolean,
   IsIn,
+  IsMongoId,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -73,13 +76,14 @@ export class CreateDeviceDto {
   @IsNotEmpty()
   position: PositionDto;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  @Matches(/^[0-9a-fA-F]{24}$/, {
+  @ApiProperty({ type: [String], required: true })
+  @IsArray()
+  @ArrayUnique()
+  @IsMongoId({
+    each: true,
     message: 'MapUUID debe ser un ObjectId válido de MongoDB',
   })
-  MapUUID: string;
+  MapUUID: string[];
 
   @ApiProperty()
   @IsNotEmpty()

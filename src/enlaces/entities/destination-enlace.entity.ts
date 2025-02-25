@@ -8,9 +8,6 @@ export class DestinationEnlace {
 
   @Prop({ type: String, required: true })
   InterfaceDestino: string;
-
-  @Prop({ type: Boolean, default: true })
-  isActive: boolean;
 }
 
 export const DestinationEnlaceSchema =

@@ -24,11 +24,10 @@ export class Device {
   isActive: boolean;
 
   @Prop({
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Mapa',
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Mapa' }],
     required: true,
   })
-  MapUUID: Mapa;
+  MapUUID: mongoose.Types.ObjectId[];
 
   @Prop({ isRequired: true })
   StatusIcmp: string;
