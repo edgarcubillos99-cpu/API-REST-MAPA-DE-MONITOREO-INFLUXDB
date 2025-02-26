@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
-import { Mapa } from 'src/mapas/entities/mapa.entity';
 import { DestinationEnlace } from './destination-enlace.entity';
 
 @Schema({ timestamps: true })
@@ -26,7 +25,7 @@ export class Enlace {
   DevicesInterfacesDestination: DestinationEnlace[];
 
   @Prop({ type: String })
-  tipoMedio: string; // 'Fiber Optic', 'Wireless', 'Cable'  //ingles
+  tipoMedio: string; // 'Fiber Optic', 'Wireless', 'Cable'
 
   @Prop({ type: Number })
   idsnmp: number; // 1,2,3,4
@@ -38,7 +37,7 @@ export class Enlace {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Mapa' }],
     default: [new mongoose.Types.ObjectId('67b38c15cf3716cedc9da393')],
   })
-  MapUUID: Mapa[];
+  MapUUID: mongoose.Types.ObjectId[];
 
   @Prop({ type: Boolean, default: true })
   isActive: boolean;

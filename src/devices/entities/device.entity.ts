@@ -1,7 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
 import { Position } from 'src/common/entities/position.entity';
-import { Mapa } from 'src/mapas/entities/mapa.entity';
 
 @Schema({ timestamps: true })
 export class Device {

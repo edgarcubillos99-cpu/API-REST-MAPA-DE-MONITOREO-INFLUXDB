@@ -9,6 +9,7 @@ import {
   ValidateNested,
   IsArray,
   IsMongoId,
+  ArrayUnique,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MEDIO_TRANSMICION } from 'src/common/enums/medio-transmicion.enum';
@@ -78,7 +79,8 @@ export class CreateEnlaceDto {
   lastStatus: string;
 
   @ApiProperty({ type: [String], required: false })
-  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
   @IsArray()
   @IsMongoId({
     each: true,

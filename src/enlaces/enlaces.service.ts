@@ -99,41 +99,121 @@ export class EnlacesService {
   }
 
   async update(id: string, updateEnlaceDto: UpdateEnlaceDto) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
     try {
       const enlace = await this.findById(id);
-      const updatedEnlace = await enlace.updateOne(updateEnlaceDto);
 
-      return updatedEnlace;
+      // SI SE PASA EL CAMPO DEVICESINTERFACESDESTINATION
+      if (updateEnlaceDto.DevicesInterfacesDestination) {
+        // 1. ELIMINA LOS ENLACES DE DESTINO ANTIGUOS
+        const oldDestinationEnlaces = enlace.DevicesInterfacesDestination;
+
+        if (oldDestinationEnlaces.length > 0) {
+          await this._destinationEnlaceModel.updateMany(
+            { _id: { $in: oldDestinationEnlaces } },
+            { isActive: false },
+            { session },
+          );
+
+          // ELIMINA LAS REFERENCIAS DEL ENLACE
+          await this._enlaceModel.updateOne(
+            { _id: enlace._id },
+            {
+              $pull: {
+                DevicesInterfacesDestination: { $in: oldDestinationEnlaces },
+              },
+            },
+            { session },
+          );
+        }
+
+        // 2. CREAR NUEVOS ENLACES DE DESTINO Y OBTENER SUS _id
+        const newDestinationEnlaces =
+          await this._destinationEnlaceModel.insertMany(
+            updateEnlaceDto.DevicesInterfacesDestination?.map((device) => ({
+              DeviceDestino: new mongoose.Types.ObjectId(device.DeviceDestino),
+              InterfaceDestino: device.InterfaceDestino,
+            })),
+            { session },
+          );
+
+        // 3. ACTUALIZAR EL ENLACE CON LAS NUEVAS REFERENCIAS
+        const newDestinationIds = newDestinationEnlaces.map((d) => d._id);
+
+        await this._enlaceModel.updateOne(
+          { _id: enlace._id },
+          {
+            $set: {
+              ...updateEnlaceDto,
+              DevicesInterfacesDestination: newDestinationIds,
+            },
+          },
+          { session },
+        );
+      } else {
+        await this._enlaceModel.updateOne(
+          { _id: id },
+          { $set: updateEnlaceDto },
+          { session },
+        );
+      }
+
+      // CONFIRMANDO LA TRANSACCION
+      await session.commitTransaction();
+
+      return await this.findById(id);
     } catch (error) {
       this.commonService.handleExceptions(error);
+      // ABORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
+      await session.abortTransaction();
+    } finally {
+      await session.endSession();
     }
   }
 
   async remove(id: string) {
-    const enlace = await this.findById(id);
+    const session = await this.connection.startSession();
+    session.startTransaction();
 
-    const destinationEnlaces = enlace.DevicesInterfacesDestination;
+    try {
+      const enlace = await this.findById(id);
 
-    // ACTUALIZANDO MapUUID y DevicesDestination ELEMENTOS DEL ARREGLO
-    await this._enlaceModel.updateOne(
-      { _id: enlace._id },
-      {
-        $pullAll: {
-          DevicesInterfacesDestination: destinationEnlaces,
-          MapUUID: enlace.MapUUID,
+      const destinationEnlaces = enlace.DevicesInterfacesDestination;
+
+      // ACTUALIZANDO MapUUID y DevicesDestination ELEMENTOS DEL ARREGLO
+      await this._enlaceModel.updateOne(
+        { _id: enlace._id },
+        {
+          $pullAll: {
+            DevicesInterfacesDestination: destinationEnlaces,
+            MapUUID: enlace.MapUUID,
+          },
         },
-      },
-    );
+        { session },
+      );
 
-    // ELIMINADO EL ENLACE ENCONTRADO
-    await enlace.updateOne({ isActive: false });
+      // ELIMINADO EL ENLACE ENCONTRADO
+      await enlace.updateOne({ isActive: false }, { session });
 
-    await this._destinationEnlaceModel.updateMany(
-      { _id: { $in: destinationEnlaces } },
-      { isActive: false },
-    );
+      await this._destinationEnlaceModel.updateMany(
+        { _id: { $in: destinationEnlaces } },
+        { isActive: false },
+        { session },
+      );
 
-    return `Enlace ${enlace._id} Delete!`;
+      // CONFIRMANDO LA TRANSACCION
+      await session.commitTransaction();
+
+      return `Enlace ${enlace._id} Delete!`;
+    } catch (error) {
+      this.commonService.handleExceptions(error);
+      // ABORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
+      session.abortTransaction();
+    } finally {
+      await session.endSession();
+    }
   }
 
   snmpQuerySubtreeSimple(ip: string) {
