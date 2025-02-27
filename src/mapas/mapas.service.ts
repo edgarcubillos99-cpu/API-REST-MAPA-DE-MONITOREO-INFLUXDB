@@ -63,10 +63,22 @@ export class MapasService {
     return mapa;
   }
 
-  async findAllDevicesInMapa(id: string) {
+  async findAllDevicesInMapa(id: string, paginationDto: PaginationDto) {
+    const { limit = 10, offset = 0, name } = paginationDto;
+
     const mapa = await this._mapaModel
-      .findOne({ _id: id, isActive: true })
-      .populate({ path: 'Devices' })
+      .findOne({
+        _id: id,
+        isActive: true,
+      })
+      .populate({
+        path: 'Devices',
+        match: name ? { name: { $regex: `^${name}`, $options: 'i' } } : {},
+        options: {
+          skip: offset,
+          limit: limit,
+        },
+      })
       .select('Devices')
       .exec();
 
