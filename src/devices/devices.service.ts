@@ -104,15 +104,16 @@ export class DevicesService {
       if (updateDeviceDto.MapUUID) {
         // ITERAR SOBRE EL ARREGLO DE MapUUID
         for (const mapUUID of device.MapUUID) {
-          const mapa = await this.mapasService.findById(mapUUID.toString());
+          const mapa = await this._mapaModel.findById(mapUUID);
 
           // ACTUALIZANDO EL MAPA PARA REMOVER EL DEVICE
-          await mapa
-            .updateOne({
-              $inc: { AmountDevices: -1 },
-              $pull: { Devices: device._id }, // VERIFICA DEVICE EXISTA EN ARREGLO, SI NO EXISTE NO DISMINUYA EL CONTADOR AmountDevices
-            })
-            .session(session);
+          if (mapa)
+            await mapa
+              .updateOne({
+                $inc: { AmountDevices: -1 },
+                $pull: { Devices: device._id }, // VERIFICA DEVICE EXISTA EN ARREGLO, SI NO EXISTE NO DISMINUYA EL CONTADOR AmountDevices
+              })
+              .session(session);
         }
 
         // ACTUALIZAR EL CAMPO DE MapUUIDs EN EL DISPOSITIVO
@@ -161,15 +162,16 @@ export class DevicesService {
 
       // ITERAR SOBRE EL ARREGLO DE MapUUID
       for (const mapUUID of device.MapUUID) {
-        const mapa = await this.mapasService.findById(mapUUID.toString());
+        const mapa = await this._mapaModel.findById(mapUUID);
 
         // ACTUALIZANDO EL MAPA PARA REMOVER EL DEVICE
-        await mapa
-          .updateOne({
-            $inc: { AmountDevices: -1 },
-            $pull: { Devices: device._id }, // VERIFICA DEVICE EXISTA EN ARREGLO, SI NO EXISTE NO DISMINUYA EL CONTADOR AmountDevices
-          })
-          .session(session);
+        if (mapa)
+          await mapa
+            .updateOne({
+              $inc: { AmountDevices: -1 },
+              $pull: { Devices: device._id }, // VERIFICA DEVICE EXISTA EN ARREGLO, SI NO EXISTE NO DISMINUYA EL CONTADOR AmountDevices
+            })
+            .session(session);
       }
 
       // ELIMINADO EL DEVICE ENCONTRADO
