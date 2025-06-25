@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
@@ -6,13 +6,40 @@ import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { CommonService } from 'src/common/common.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
-export class UsersService {
+export class UsersService implements OnModuleInit {
   constructor(
     @InjectModel(User.name) private _userModel: Model<User>,
     private readonly commonService: CommonService,
   ) {}
+
+  async onModuleInit() {
+    await this._userModel.ensureIndexes();
+
+    const firstUserSystemFound = await this._userModel.findOne({
+      email: 'developers@osnetpr.com',
+    });
+
+    if (!firstUserSystemFound) {
+      const password = uuidv4();
+
+      //CREANDO EL USUARIO
+      console.log(`CREANDO EL PRIMER USUARIO DEL SISTEMA USUARIO: ${password}`);
+
+      const DataFirstUserSystem: CreateUserDto = {
+        firstName: 'Developers',
+        lastName: 'Developers2',
+        email: 'developers@osnetpr.com',
+        password,
+      };
+
+      const newUser = new this._userModel(DataFirstUserSystem);
+
+      const firstUserInDatabase = await newUser.save();
+    }
+  }
 
   async create(createUserDto: CreateUserDto) {
     try {
