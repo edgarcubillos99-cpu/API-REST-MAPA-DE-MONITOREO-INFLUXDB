@@ -14,6 +14,9 @@ async function bootstrap() {
     }),
   );
 
+  //HABILITANDO LOS CORS
+  app.enableCors();
+
   //SI EL ENTORNO ES DE DESARROLLO
   if (process.env.ENTORNO === 'DEV') {
     const config = new DocumentBuilder()
