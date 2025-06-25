@@ -42,8 +42,11 @@ export class MapasController {
 
   @Public()
   @Get(':id/devices')
-  findAllDevicesInMapa(@Param('id', ParsemongoidPipe) id: string) {
-    return this.mapasService.findAllDevicesInMapa(id);
+  findAllDevicesInMapa(
+    @Param('id', ParsemongoidPipe) id: string,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.mapasService.findAllDevicesInMapa(id, paginationDto);
   }
 
   @Patch(':id')
