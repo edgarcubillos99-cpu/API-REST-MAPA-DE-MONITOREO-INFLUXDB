@@ -3,6 +3,14 @@ import mongoose from 'mongoose';
 import { Position } from 'src/common/entities/position.entity';
 import { Device } from 'src/devices/entities/device.entity';
 
+export class AmountStatusDevicesSnmp {
+  @Prop({ type: Number, default: 0 })
+  up: number;
+
+  @Prop({ type: Number, default: 0 })
+  down: number;
+}
+
 @Schema({ timestamps: true })
 export class Mapa {
   @Prop({ isRequired: true, unique: true })
@@ -30,6 +38,13 @@ export class Mapa {
 
   @Prop({ isRequired: true })
   StatusDevices: string;
+
+  @Prop({
+    type: AmountStatusDevicesSnmp,
+    required: true,
+    default: { up: 0, down: 0 },
+  })
+  AmountStatusDevicesSnmp: AmountStatusDevicesSnmp;
 }
 
 export const MapaSchema = SchemaFactory.createForClass(Mapa);
