@@ -284,7 +284,9 @@ export class EnlacesService {
 
                 if (ifIndex) {
                   if (!interfaces[ifIndex]) {
-                    interfaces[ifIndex] = {};
+                    interfaces[ifIndex] = {
+                      idsnmp: parseInt(ifIndex, 10),
+                    };
                   }
 
                   // ASIGNAR VALORES CON NOMBRES PERSONALIZADOS
