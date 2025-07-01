@@ -2,6 +2,14 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
 import { Position } from 'src/common/entities/position.entity';
 
+export class ConnectionSettings {
+  @Prop({ type: String, default: 'UDP' })
+  protocol: string;
+
+  @Prop({ type: Number, default: 161 })
+  port: number;
+}
+
 @Schema({ timestamps: true })
 export class Device {
   @Prop({ isRequired: true, unique: true })
@@ -39,6 +47,13 @@ export class Device {
 
   @Prop({ type: String })
   community: string;
+
+  @Prop({
+    type: ConnectionSettings,
+    required: true,
+    default: { protocol: 'UDP', port: 161 },
+  })
+  ConnectionSettings: ConnectionSettings;
 
   @Prop({
     type: Object,
