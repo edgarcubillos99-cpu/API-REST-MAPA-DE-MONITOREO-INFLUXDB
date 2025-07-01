@@ -2,8 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateMapaDto } from './dto/create-mapa.dto';
 import { UpdateMapaDto } from './dto/update-mapa.dto';
 import { Mapa } from './entities/mapa.entity';
-import { Model } from 'mongoose';
-import { InjectModel } from '@nestjs/mongoose';
+import mongoose, { Model } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { CommonService } from 'src/common/common.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 
@@ -11,16 +11,56 @@ import { PaginationDto } from 'src/common/dto/pagination.dto';
 export class MapasService {
   constructor(
     @InjectModel(Mapa.name) private _mapaModel: Model<Mapa>,
+    @InjectConnection() private readonly connection: mongoose.Connection,
     private readonly commonService: CommonService,
   ) {}
 
   async create(createMapaDto: CreateMapaDto) {
-    try {
-      const mapa = await this._mapaModel.create(createMapaDto);
+    const session = await this.connection.startSession();
+    session.startTransaction();
 
-      return mapa;
+    try {
+      //BUSCAR SI EXISTE UN MAP DESACTIVADO CON EL MISMO NOMBRE
+      const foundMapaDesactivated = await this._mapaModel.findOne({
+        isActive: false,
+        name: createMapaDto.name,
+      });
+
+      if (foundMapaDesactivated) {
+        //REACTIVAR EL MAPA Y ACTUALIZAR SUS CAMPOS
+        await foundMapaDesactivated.updateOne(
+          {
+            isActive: true,
+            ...createMapaDto,
+          },
+          { session },
+        );
+
+        //CONFIRMANDO LA TRANSACCION
+        await session.commitTransaction();
+
+        //RETORNAMOS EL MAPA ACTUALIZADO
+        const mapaRecreated = await this._mapaModel.findById(
+          foundMapaDesactivated._id,
+        );
+
+        return mapaRecreated;
+      }
+
+      //SI NO EXISTE, CREAR NORMALMENTE
+      const mapa = await this._mapaModel.create([createMapaDto], { session });
+
+      //CONFIRMANDO LA TRANSACCION
+      await session.commitTransaction();
+
+      //RETORNAMOS EL MAPA CREADO OBJETO [0]
+      return mapa[0];
     } catch (error) {
       this.commonService.handleExceptions(error);
+      //ABORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
+      session.abortTransaction();
+    } finally {
+      await session.endSession();
     }
   }
 

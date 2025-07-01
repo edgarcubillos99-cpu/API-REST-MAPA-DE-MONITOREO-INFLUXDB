@@ -24,15 +24,54 @@ export class DevicesService {
     session.startTransaction();
 
     try {
+      //BUSCAR SI EXISTE UN DISPOSITIVO DESACTIVADO CON EL MISMO IP
+      const foundDeviceDesactivated = await this._deviceModel.findOne({
+        isActive: false,
+        ip: createDeviceDto.ip,
+      });
+
+      if (foundDeviceDesactivated) {
+        //REACTIVAR EL DISPOSITIVO Y ACTUALIZAR SUS CAMPOS
+        await foundDeviceDesactivated.updateOne(
+          {
+            isActive: true,
+            ...createDeviceDto,
+          },
+          { session },
+        );
+
+        //ACTUALIZAR LOS MAPAS RELACIONADOS
+        for (const mapUUID of createDeviceDto.MapUUID) {
+          const mapa = await this.mapasService.findById(mapUUID);
+          await mapa.updateOne(
+            {
+              $inc: { AmountDevices: 1 },
+              $push: { Devices: foundDeviceDesactivated._id },
+            },
+            { session },
+          );
+        }
+        //CONFIRMANDO LA TRANSACCION
+        await session.commitTransaction();
+
+        //RETORNAMOS EL DEVICE ACTUALIZADO
+        const deviceRecreated = await this._deviceModel.findById(
+          foundDeviceDesactivated._id,
+        );
+
+        return deviceRecreated;
+      }
+
+      //SI NO EXISTE, CREAR NORMALMENTE
       const device = await this._deviceModel.create([createDeviceDto], {
         session,
       });
 
-      // ITERAR SOBRE EL ARREGLO de MapUUID
+      //ITERAR SOBRE EL ARREGLO de MapUUID
       for (const mapUUID of createDeviceDto.MapUUID) {
         const mapa = await this.mapasService.findById(mapUUID);
 
-        // ACTUALIZANDO EL CAMPO DE DEVICES EN CADA MAPA
+        //ACTUALIZANDO EL CAMPO DE DEVICES EN CADA MAPA
         await mapa
           .updateOne({
             $inc: { AmountDevices: 1 },
@@ -41,13 +80,14 @@ export class DevicesService {
           .session(session);
       }
 
-      // CONFIRMANDO LA TRANSACCION
+      //CONFIRMANDO LA TRANSACCION
       await session.commitTransaction();
 
-      return device;
+      //RETORNAMOS EL DEVICE CREADO OBJETO [0]
+      return device[0];
     } catch (error) {
       this.commonService.handleExceptions(error);
-      // ABORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
+      //ABORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
       session.abortTransaction();
     } finally {
       await session.endSession();

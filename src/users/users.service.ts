@@ -46,7 +46,7 @@ export class UsersService implements OnModuleInit {
       // BUSCANDO SI EL USUARIO ESTA DESACTIVADO
       const foundUserDesactivate = await this._userModel.findOne({
         isActive: false,
-        $or: [{ email: createUserDto.email }],
+        email: createUserDto.email,
       });
 
       if (foundUserDesactivate) {
