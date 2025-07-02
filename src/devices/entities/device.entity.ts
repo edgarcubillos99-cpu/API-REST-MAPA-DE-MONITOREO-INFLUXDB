@@ -86,4 +86,11 @@ DeviceSchema.virtual('enlaces', {
 });
 
 DeviceSchema.set('toObject', { virtuals: true });
-DeviceSchema.set('toJSON', { virtuals: true });
+DeviceSchema.set('toJSON', {
+  virtuals: true,
+  versionKey: false,
+  transform: function (doc, ret) {
+    delete ret.id;
+    return ret;
+  },
+});

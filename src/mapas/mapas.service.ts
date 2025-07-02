@@ -123,6 +123,14 @@ export class MapasService {
           match: { isActive: true },
           select:
             'DeviceOrigen InterfaceOrigen DevicesInterfacesDestination tipoMedio idsnmp lastStatus isActive',
+          populate: {
+            path: 'DevicesInterfacesDestination',
+            select: 'DeviceDestino InterfaceDestino isActive',
+            populate: {
+              path: 'DeviceDestino',
+              select: 'name ip isActive',
+            },
+          },
         },
       })
       .select('Devices')
