@@ -36,7 +36,7 @@ export class Device {
   })
   MapUUID: mongoose.Types.ObjectId[];
 
-  @Prop({ isRequired: true })
+  @Prop({ isRequired: true, default: 'down' })
   StatusIcmp: string;
 
   @Prop({ isRequired: true, default: 161 })
@@ -47,6 +47,9 @@ export class Device {
 
   @Prop({ type: String })
   community: string;
+
+  @Prop({ type: Date, isRequired: true, default: Date.now() })
+  lastChangeStatusTime: Date;
 
   @Prop({
     type: ConnectionSettings,
@@ -75,3 +78,12 @@ export class Device {
 }
 
 export const DeviceSchema = SchemaFactory.createForClass(Device);
+
+DeviceSchema.virtual('enlaces', {
+  ref: 'Enlace',
+  localField: '_id',
+  foreignField: 'DeviceOrigen',
+});
+
+DeviceSchema.set('toObject', { virtuals: true });
+DeviceSchema.set('toJSON', { virtuals: true });

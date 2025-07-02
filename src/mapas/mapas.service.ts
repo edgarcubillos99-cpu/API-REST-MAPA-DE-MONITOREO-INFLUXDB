@@ -118,6 +118,12 @@ export class MapasService {
           skip: offset,
           limit: limit,
         },
+        populate: {
+          path: 'enlaces',
+          match: { isActive: true },
+          select:
+            'DeviceOrigen InterfaceOrigen DevicesInterfacesDestination tipoMedio idsnmp lastStatus isActive',
+        },
       })
       .select('Devices')
       .exec();
