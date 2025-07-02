@@ -8,16 +8,64 @@ import { CommonService } from 'src/common/common.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { MapasService } from 'src/mapas/mapas.service';
 import { Mapa } from 'src/mapas/entities/mapa.entity';
+import { EventLog } from 'src/event-logs/entities/event-log.entity';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { STATUS } from 'src/common/enums/status.enum';
+import { EVENT_LOGS } from 'src/common/enums/event-logs.enum.ts';
 
 @Injectable()
 export class DevicesService {
   constructor(
     @InjectModel(Device.name) private _deviceModel: Model<Device>,
     @InjectModel(Mapa.name) private _mapaModel: Model<Mapa>,
+    @InjectModel(EventLog.name) private _eventLogModel: Model<EventLog>,
     @InjectConnection() private readonly connection: mongoose.Connection,
     private readonly commonService: CommonService,
     private readonly mapasService: MapasService,
+    private eventEmitter: EventEmitter2,
   ) {}
+
+  @OnEvent(EVENT_LOGS.DEVICE_STATUS_ICMP_CHANGED)
+  async handledeviceStatusIcmpChangedEvent(payload: any) {
+    const { _id, StatusIcmp, lastChangeStatusTime } = payload;
+
+    //console.log('Handling deviceStatusIcmpChanged event:', payload);
+
+    //BUSCAR EL ÚLTIMO LOG ANTERIOR DE ESTE DEVICE
+    const lastLog = await this._eventLogModel
+      .findOne({ deviceId: _id })
+      .sort({ changedAt: -1 })
+      .lean();
+
+    let elapsedMs: number;
+    let elapsedFormatted: string = '00:00:00.000'; //"HH:mm:ss.SSS"
+
+    if (lastLog && lastLog.changedAt) {
+      elapsedMs =
+        new Date(lastChangeStatusTime).getTime() -
+        new Date(lastLog.changedAt).getTime();
+
+      // Formatear a "HH:mm:ss.SSS"
+      const hours = Math.floor(elapsedMs / 3600000);
+      const minutes = Math.floor((elapsedMs % 3600000) / 60000);
+      const seconds = Math.floor((elapsedMs % 60000) / 1000);
+      const milliseconds = elapsedMs % 1000;
+      elapsedFormatted =
+        `${hours.toString().padStart(2, '0')}:` +
+        `${minutes.toString().padStart(2, '0')}:` +
+        `${seconds.toString().padStart(2, '0')}.` +
+        `${milliseconds.toString().padStart(3, '0')}`;
+    }
+
+    console.log(elapsedFormatted);
+
+    await this._eventLogModel.create({
+      deviceId: _id,
+      StatusIcmp: StatusIcmp,
+      changedAt: lastChangeStatusTime,
+      Time: elapsedFormatted, //tiempo transcurrido formateado
+    });
+  }
 
   async create(createDeviceDto: CreateDeviceDto) {
     const session = await this.connection.startSession();
@@ -31,14 +79,26 @@ export class DevicesService {
       });
 
       if (foundDeviceDesactivated) {
+        const prevStatusIcmp = foundDeviceDesactivated.StatusIcmp;
+        const newStatusIcmp = createDeviceDto.StatusIcmp;
+
+        const deviceRecreatedPayload: any = {
+          isActive: true,
+          ...createDeviceDto,
+        };
+
+        const now = Date.now();
+
+        //SOLO ACTUALIZA EL TIMESTAMP SI EL ESTADO CAMBIO
+        if (prevStatusIcmp !== newStatusIcmp) {
+          const now = new Date();
+          deviceRecreatedPayload.lastChangeStatusTime = now;
+        }
+
         //REACTIVAR EL DISPOSITIVO Y ACTUALIZAR SUS CAMPOS
-        await foundDeviceDesactivated.updateOne(
-          {
-            isActive: true,
-            ...createDeviceDto,
-          },
-          { session },
-        );
+        await foundDeviceDesactivated.updateOne(deviceRecreatedPayload, {
+          session,
+        });
 
         //ACTUALIZAR LOS MAPAS RELACIONADOS
         for (const mapUUID of createDeviceDto.MapUUID) {
@@ -58,6 +118,16 @@ export class DevicesService {
         const deviceRecreated = await this._deviceModel.findById(
           foundDeviceDesactivated._id,
         );
+
+        //EMITIR EVENTLOGS DESPUES DE REACTIVAR EL DEVICE SOLO SI EL ESTADO CAMBIO
+        //NO EMITIR NI CREES UN LOG SI EL ESTADO ANTERIOR Y EL NUEVO SON IGUALES
+        if (prevStatusIcmp !== newStatusIcmp) {
+          this.eventEmitter.emit(EVENT_LOGS.DEVICE_STATUS_ICMP_CHANGED, {
+            _id: deviceRecreated?._id,
+            StatusIcmp: deviceRecreated?.StatusIcmp,
+            lastChangeStatusTime: deviceRecreated?.lastChangeStatusTime,
+          });
+        }
 
         return deviceRecreated;
       }
@@ -82,6 +152,13 @@ export class DevicesService {
 
       //CONFIRMANDO LA TRANSACCION
       await session.commitTransaction();
+
+      //EMITIR EVENTO DESPUÉS DE CREAR EL DEVICE
+      this.eventEmitter.emit(EVENT_LOGS.DEVICE_STATUS_ICMP_CHANGED, {
+        _id: device[0]._id,
+        StatusIcmp: device[0].StatusIcmp,
+        lastChangeStatusTime: device[0].lastChangeStatusTime,
+      });
 
       //RETORNAMOS EL DEVICE CREADO OBJETO [0]
       return device[0];
@@ -138,34 +215,50 @@ export class DevicesService {
     session.startTransaction();
 
     try {
+      const devicePayload = {
+        ...updateDeviceDto,
+      };
+
       const device = await this.findById(id);
 
-      // SI SE PASA EL CAMPO MapUUID
+      //BANDERA PARA SABER SI SE CAMBIO EL STATUSICMP
+      let statusIcmpChanged = false;
+
+      //SI CAMBIA EL STATUSICMP, ACTUALIZA EL TIMESTAMP
+      if (
+        updateDeviceDto.StatusIcmp &&
+        updateDeviceDto.StatusIcmp !== device.StatusIcmp
+      ) {
+        devicePayload['lastChangeStatusTime'] = Date.now();
+        statusIcmpChanged = true;
+      }
+
+      //SI SE PASA EL CAMPO MapUUID
       if (updateDeviceDto.MapUUID) {
-        // ITERAR SOBRE EL ARREGLO DE MapUUID
+        //ITERAR SOBRE EL ARREGLO DE MapUUID
         for (const mapUUID of device.MapUUID) {
           const mapa = await this._mapaModel.findById(mapUUID);
 
-          // ACTUALIZANDO EL MAPA PARA REMOVER EL DEVICE
+          //ACTUALIZANDO EL MAPA PARA REMOVER EL DEVICE
           if (mapa)
             await mapa
               .updateOne({
                 $inc: { AmountDevices: -1 },
-                $pull: { Devices: device._id }, // VERIFICA DEVICE EXISTA EN ARREGLO, SI NO EXISTE NO DISMINUYA EL CONTADOR AmountDevices
+                $pull: { Devices: device._id }, //VERIFICA DEVICE EXISTA EN ARREGLO, SI NO EXISTE NO DISMINUYA EL CONTADOR AmountDevices
               })
               .session(session);
         }
 
-        // ACTUALIZAR EL CAMPO DE MapUUIDs EN EL DISPOSITIVO
+        //ACTUALIZAR EL CAMPO DE MapUUIDs EN EL DISPOSITIVO
         device.MapUUID = updateDeviceDto.MapUUID.map(
           (id) => new mongoose.Types.ObjectId(id),
         );
 
-        // ITERAR SOBRE EL NUEVO ARREGLO DE MapUUID
+        //ITERAR SOBRE EL NUEVO ARREGLO DE MapUUID
         for (const mapUUID of updateDeviceDto.MapUUID) {
           const mapa = await this.mapasService.findById(mapUUID.toString());
 
-          // ACTUALIZANDO EL CAMPO DE DEVICES EN CADA MAPA
+          //ACTUALIZANDO EL CAMPO DE DEVICES EN CADA MAPA
           await mapa
             .updateOne({
               $inc: { AmountDevices: 1 },
@@ -175,18 +268,30 @@ export class DevicesService {
         }
       }
 
-      // ACTUALIZAR EL DISPOSITIVO
+      //ACTUALIZAR EL DISPOSITIVO
       const updatedDevice = await device
-        .updateOne(updateDeviceDto)
+        .updateOne(devicePayload)
         .session(session);
 
-      // CONFIRMANDO LA TRANSACCION
+      //CONFIRMANDO LA TRANSACCION
       await session.commitTransaction();
+
+      //EMITIR EVENTO SOLO SI CAMBIO StatusIcmp
+      if (statusIcmpChanged) {
+        //OBTENER EL DEVICE ACTUALIZADO
+        const updatedDevice = await this._deviceModel.findById(device._id);
+
+        this.eventEmitter.emit(EVENT_LOGS.DEVICE_STATUS_ICMP_CHANGED, {
+          _id: updatedDevice?._id,
+          StatusIcmp: updatedDevice?.StatusIcmp,
+          lastChangeStatusTime: updatedDevice?.lastChangeStatusTime,
+        });
+      }
 
       return updatedDevice;
     } catch (error) {
       this.commonService.handleExceptions(error);
-      // ABORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
+      //ABORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
       await session.abortTransaction();
     } finally {
       await session.endSession();
@@ -200,30 +305,55 @@ export class DevicesService {
     try {
       const device = await this.findById(id);
 
-      // ITERAR SOBRE EL ARREGLO DE MapUUID
+      //SOLO EMITIR EVENTLOGS SI EL DISPOSITIVO ESTÁ ACTUALMENTE "up"
+      const shouldEmitEventLogs = device.StatusIcmp === STATUS.UP;
+
+      //ITERAR SOBRE EL ARREGLO DE MapUUID
       for (const mapUUID of device.MapUUID) {
         const mapa = await this._mapaModel.findById(mapUUID);
 
-        // ACTUALIZANDO EL MAPA PARA REMOVER EL DEVICE
+        //ACTUALIZANDO EL MAPA PARA REMOVER EL DEVICE
         if (mapa)
           await mapa
             .updateOne({
               $inc: { AmountDevices: -1 },
-              $pull: { Devices: device._id }, // VERIFICA DEVICE EXISTA EN ARREGLO, SI NO EXISTE NO DISMINUYA EL CONTADOR AmountDevices
+              $pull: { Devices: device._id }, //VERIFICA DEVICE EXISTA EN ARREGLO, SI NO EXISTE NO DISMINUYA EL CONTADOR AmountDevices
             })
             .session(session);
       }
 
-      // ELIMINADO EL DEVICE ENCONTRADO
-      await device.updateOne({ isActive: false }).session(session);
+      const updatePayload: any = {
+        isActive: false,
+        StatusIcmp: STATUS.DOWN,
+      };
 
-      // CONFIRMANDO LA TRANSACCION
+      //SOLO ACTUALIZA EL TIMESTAMP SI EL ESTADO ERA "up"
+      if (device.StatusIcmp === STATUS.UP) {
+        updatePayload.lastChangeStatusTime = Date.now();
+      }
+
+      //ELIMINADO EL DEVICE ENCONTRADO
+      await device.updateOne(updatePayload).session(session);
+
+      //CONFIRMANDO LA TRANSACCION
       await session.commitTransaction();
+
+      //EMITIR EVENTLOGS SOLO SI EL DISPOSITIVO ESTABA EN "up" ANTES DE ELIMINARLO
+      if (shouldEmitEventLogs) {
+        //OBTENER EL DEVICE ELIMINADO
+        const removeDevice = await this._deviceModel.findById(device._id);
+
+        this.eventEmitter.emit(EVENT_LOGS.DEVICE_STATUS_ICMP_CHANGED, {
+          _id: removeDevice?._id,
+          StatusIcmp: removeDevice?.StatusIcmp,
+          lastChangeStatusTime: removeDevice?.lastChangeStatusTime,
+        });
+      }
 
       return `Device ${device.name} Delete!`;
     } catch (error) {
       this.commonService.handleExceptions(error);
-      // ABORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
+      //BORTANDO TODOS LOS CAMBIOS A BASE DE DATOS
       session.abortTransaction();
     } finally {
       await session.endSession();

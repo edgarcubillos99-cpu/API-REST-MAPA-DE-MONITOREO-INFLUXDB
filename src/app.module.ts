@@ -11,6 +11,8 @@ import { JwtAuthGuard } from './common/guard/jwt-auth.guard';
 import { MapasModule } from './mapas/mapas.module';
 import { DevicesModule } from './devices/devices.module';
 import { EnlacesModule } from './enlaces/enlaces.module';
+import { EventLogsModule } from './event-logs/event-logs.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { EnlacesModule } from './enlaces/enlaces.module';
     MapasModule,
     DevicesModule,
     EnlacesModule,
+    EventEmitterModule.forRoot(),
+    EventLogsModule,
   ],
   controllers: [AppController],
   providers: [AppService,

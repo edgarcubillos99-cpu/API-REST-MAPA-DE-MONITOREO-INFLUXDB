@@ -33,6 +33,9 @@ export class Enlace {
   @Prop({ type: String, default: 'down' })
   lastStatus: string;
 
+  @Prop({ type: Date, isRequired: true, default: Date.now() })
+  lastChangeStatusTime: Date;
+
   @Prop({
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Mapa' }],
     default: [new mongoose.Types.ObjectId('67b38c15cf3716cedc9da393')],
