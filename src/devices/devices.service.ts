@@ -29,41 +29,56 @@ export class DevicesService {
   async handledeviceStatusIcmpChangedEvent(payload: any) {
     const { _id, StatusIcmp, lastChangeStatusTime } = payload;
 
-    //console.log('Handling deviceStatusIcmpChanged event:', payload);
-
-    //BUSCAR EL ÚLTIMO LOG ANTERIOR DE ESTE DEVICE
+    //BUSCAR EL ÚLTIMO LOG REGISTRADO PARA EL DISPOSITIVO ESPECÍFICO,
+    //ORDENANDO POR LA FECHA DE CAMBIO DE ESTADO (changedAt) DE FORMA DESCENDENTE
     const lastLog = await this._eventLogModel
       .findOne({ deviceId: _id })
       .sort({ changedAt: -1 })
       .lean();
 
-    let elapsedMs: number;
-    let elapsedFormatted: string = '00:00:00.000'; //"HH:mm:ss.SSS"
+    //SI EL ESTADO NO HA CAMBIADO, NO SE REGISTRA NINGÚN LOG
+    if (lastLog && lastLog.StatusIcmp === StatusIcmp) {
+      return;
+    }
 
-    if (lastLog && lastLog.changedAt) {
-      elapsedMs =
+    let elapsedFormatted = '00:00:00.000';
+    let StatusTransition: {
+      from: string;
+      to: string;
+      message?: string;
+    } | null = null;
+
+    if (lastLog?.changedAt) {
+      const elapsedMs =
         new Date(lastChangeStatusTime).getTime() -
         new Date(lastLog.changedAt).getTime();
 
-      // Formatear a "HH:mm:ss.SSS"
+      console.log(lastChangeStatusTime, '-', lastLog.changedAt);
+
       const hours = Math.floor(elapsedMs / 3600000);
       const minutes = Math.floor((elapsedMs % 3600000) / 60000);
       const seconds = Math.floor((elapsedMs % 60000) / 1000);
       const milliseconds = elapsedMs % 1000;
+
       elapsedFormatted =
         `${hours.toString().padStart(2, '0')}:` +
         `${minutes.toString().padStart(2, '0')}:` +
         `${seconds.toString().padStart(2, '0')}.` +
         `${milliseconds.toString().padStart(3, '0')}`;
-    }
 
-    console.log(elapsedFormatted);
+      StatusTransition = {
+        from: lastLog.StatusIcmp,
+        to: StatusIcmp,
+        message: `Status change from ${lastLog.StatusIcmp} to ${StatusIcmp}`,
+      };
+    }
 
     await this._eventLogModel.create({
       deviceId: _id,
-      StatusIcmp: StatusIcmp,
+      StatusIcmp,
       changedAt: lastChangeStatusTime,
-      Time: elapsedFormatted, //tiempo transcurrido formateado
+      Time: elapsedFormatted,
+      StatusTransition,
     });
   }
 
