@@ -7,9 +7,6 @@ export class StatusTransitionSchema {
 
   @Prop({ type: String, required: true })
   to: string;
-
-  @Prop({ type: String })
-  message?: string;
 }
 
 @Schema({ timestamps: true })
@@ -18,13 +15,12 @@ export class EventLog {
   deviceId: mongoose.Types.ObjectId;
 
   @Prop({ type: String, default: 'down' })
-  StatusIcmp: string; //up, down
+  Status: string; //up, down
 
   @Prop({ type: StatusTransitionSchema })
   StatusTransition?: {
     from: string;
     to: string;
-    message?: string;
   };
 
   @Prop({ type: Date, required: true })
@@ -34,6 +30,9 @@ export class EventLog {
   //'00:00:00.000';
   @Prop({ type: String, required: true, default: '00:00:00.000' })
   Time: string;
+
+  @Prop({ type: String, default: null })
+  message?: string;
 }
 
 export const EventLogSchema = SchemaFactory.createForClass(EventLog);

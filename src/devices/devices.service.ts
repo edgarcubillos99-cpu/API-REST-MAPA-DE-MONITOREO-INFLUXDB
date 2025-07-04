@@ -37,7 +37,7 @@ export class DevicesService {
       .lean();
 
     //SI EL ESTADO NO HA CAMBIADO, NO SE REGISTRA NINGÚN LOG
-    if (lastLog && lastLog.StatusIcmp === StatusIcmp) {
+    if (lastLog && lastLog.Status === StatusIcmp) {
       return;
     }
 
@@ -45,15 +45,12 @@ export class DevicesService {
     let StatusTransition: {
       from: string;
       to: string;
-      message?: string;
     } | null = null;
 
     if (lastLog?.changedAt) {
       const elapsedMs =
         new Date(lastChangeStatusTime).getTime() -
         new Date(lastLog.changedAt).getTime();
-
-      console.log(lastChangeStatusTime, '-', lastLog.changedAt);
 
       const hours = Math.floor(elapsedMs / 3600000);
       const minutes = Math.floor((elapsedMs % 3600000) / 60000);
@@ -67,18 +64,20 @@ export class DevicesService {
         `${milliseconds.toString().padStart(3, '0')}`;
 
       StatusTransition = {
-        from: lastLog.StatusIcmp,
+        from: lastLog.Status,
         to: StatusIcmp,
-        message: `Status change from ${lastLog.StatusIcmp} to ${StatusIcmp}`,
       };
     }
 
     await this._eventLogModel.create({
       deviceId: _id,
-      StatusIcmp,
+      Status: StatusIcmp,
       changedAt: lastChangeStatusTime,
       Time: elapsedFormatted,
       StatusTransition,
+      message: StatusTransition
+        ? `Cantidad de tiempo ${StatusTransition?.from} ${elapsedFormatted}`
+        : null,
     });
   }
 
