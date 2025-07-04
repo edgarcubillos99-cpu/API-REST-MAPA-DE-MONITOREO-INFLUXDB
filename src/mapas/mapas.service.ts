@@ -66,26 +66,52 @@ export class MapasService {
 
   async findAll(paginationDto: PaginationDto) {
     const { limit = 10, offset = 0, name } = paginationDto;
-    let result: any;
 
+    const filter: any = { isActive: true };
     if (name) {
-      result = await this._mapaModel
-        .find({
-          isActive: true,
-          $or: [{ name: { $regex: `^${name}`, $options: 'i' } }],
-        })
-        .skip(offset)
-        .limit(limit)
-        .exec();
-
-      return result;
+      filter.$or = [{ name: { $regex: `^${name}`, $options: 'i' } }];
     }
 
-    result = await this._mapaModel
-      .find({ isActive: true })
-      .skip(offset)
-      .limit(limit)
-      .exec();
+    const result = await this._mapaModel.aggregate([
+      { $match: filter },
+      { $skip: offset },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: 'enlaces',
+          let: { deviceIds: '$Devices' },
+          pipeline: [
+            { $match: { $expr: { $in: ['$DeviceOrigen', '$$deviceIds'] } } },
+            { $project: { _id: 1 } },
+          ],
+          as: 'EnlacesOrigen',
+        },
+      },
+      {
+        $addFields: {
+          AmountDevices: { $size: { $ifNull: ['$Devices', []] } },
+          AmountEnlaces: { $size: '$EnlacesOrigen' },
+          Enlaces: {
+            $map: { input: '$EnlacesOrigen', as: 'e', in: '$$e._id' },
+          },
+        },
+      },
+      {
+        $project: {
+          name: 1,
+          latitude: 1,
+          longitude: 1,
+          position: 1,
+          isActive: 1,
+          Devices: 1,
+          AmountDevices: 1,
+          Enlaces: 1,
+          AmountEnlaces: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+    ]);
 
     return result;
   }
