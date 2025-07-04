@@ -62,7 +62,7 @@ export class Device {
     type: Object,
     default: {
       count: 8,
-      intervall: 50,
+      intervall: 10,
       sumTimeOut: 1200,
       percentLostPackage: 70,
       sizePackage: 64,
