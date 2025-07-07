@@ -58,6 +58,12 @@ export class Device {
   })
   ConnectionSettings: ConnectionSettings;
 
+  @Prop({ type: Boolean, default: false })
+  inUnimus: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  inLibrenms: boolean;
+
   @Prop({
     type: Object,
     default: {

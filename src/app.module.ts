@@ -13,6 +13,7 @@ import { DevicesModule } from './devices/devices.module';
 import { EnlacesModule } from './enlaces/enlaces.module';
 import { EventLogsModule } from './event-logs/event-logs.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     EnlacesModule,
     EventEmitterModule.forRoot(),
     EventLogsModule,
+    ScheduleModule.forRoot()
   ],
   controllers: [AppController],
   providers: [AppService,

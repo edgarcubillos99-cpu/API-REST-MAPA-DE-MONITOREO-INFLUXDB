@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
@@ -12,6 +12,11 @@ import { EventLog } from 'src/event-logs/entities/event-log.entity';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { STATUS } from 'src/common/enums/status.enum';
 import { EVENT_LOGS } from 'src/common/enums/event-logs.enum.ts';
+import { Cron } from '@nestjs/schedule';
+import axios from 'axios';
+
+const path = require('path');
+const Client = require('ssh2').Client;
 
 @Injectable()
 export class DevicesService {
@@ -24,6 +29,8 @@ export class DevicesService {
     private readonly mapasService: MapasService,
     private eventEmitter: EventEmitter2,
   ) {}
+
+  private readonly logger = new Logger(DevicesService.name);
 
   @OnEvent(EVENT_LOGS.DEVICE_STATUS_ICMP_CHANGED)
   async handledeviceStatusIcmpChangedEvent(payload: any) {
@@ -372,5 +379,129 @@ export class DevicesService {
     } finally {
       await session.endSession();
     }
+  }
+
+  async isDevicesInUnimus() {
+    //OBTENER TODAS LAS IPS DE LOS DISPOSITIVOS ACTIVOS
+    const result = await this._deviceModel.aggregate([
+      { $match: { isActive: true } },
+      { $project: { _id: 0, ip: 1 } },
+    ]);
+
+    const ipDevices: string[] = result.map((device) => device.ip);
+
+    //console.log(ipDevices);
+
+    //let sortDevices = ipDevices.splice(0, 100);
+    let sortDevices = ['router-osn-candelero-25510.osnetpr.com'];
+
+    //console.log(sortDevices);
+    //HACER TODAS LAS PETICIONES EN PARALELO Y ESPERAR LOS RESULTADOS
+    const responses = await Promise.all(
+      sortDevices.map(async (ip) => {
+        try {
+          const response = await axios.get(
+            `${process.env.UNIMUS_URL}/api/v2/devices/findByAddress/${ip}`,
+            {
+              headers: {
+                Authorization: `Bearer ${process.env.UNIMUS_TOKEN}`,
+              },
+            },
+          );
+          return { ip, response };
+        } catch (error) {
+          // Si hay error (por ejemplo, 404), lo manejamos aquí
+          return { ip, response: null };
+        }
+      }),
+    );
+
+    let deviceFound = 0;
+    let deviceNotFound = 0;
+
+    for (const { ip, response } of responses) {
+      if (response && response.status === 200 && response.data.length > 0) {
+        const deviceId = response.data[0].id;
+        console.log(
+          `Device with IP ${ip} found in Unimus with ID: ${deviceId}`,
+        );
+        deviceFound++;
+      } else {
+        console.log(`Device with IP ${ip} not found in Unimus`);
+        deviceNotFound++;
+      }
+    }
+
+    console.log(
+      'Total found:',
+      deviceFound,
+      'Total not found:',
+      deviceNotFound,
+    );
+  }
+
+  sshConnection() {
+    //CREAR UNA NUEVA INSTANCIA DEL CLIENTE SSH
+    const sshClient = new Client();
+
+    //CONFIGURAR LOS PARÁMETROS DE CONEXIÓN
+    const connectionParams = {
+      host: process.env.SSH_HOST,
+      username: process.env.SSH_USER,
+      privateKey: require('fs').readFileSync(
+        path.join(process.cwd(), 'cert/id_rsa_unimus_programacion.cert'),
+      ),
+    };
+
+    //CONECTARSE AL SERVIDOR SSH
+    sshClient.connect(connectionParams);
+
+    sshClient.on('ready', () => {
+      //console.log('Connected via SSH!');
+      this.logger.log('Connected via SSH!');
+
+      //NOW CAN EXECUTE COMMANDS, TRANSFER FILES, ETC.
+      //OBTENER EL CONTENIDO DEL ARCHIVO /var/lib/bind/osnetpr.com.hosts
+      sshClient.exec(
+        'docker exec bind cat /var/lib/bind/osnetpr.com.hosts',
+        (err, stream) => {
+          if (err) {
+            console.error('Error executing command:', err);
+            return;
+          }
+
+          stream
+            .on('close', (code, signal) => {
+              //console.log(`Command finished with code: ${code}, signal: ${signal}`,);
+              this.logger.log(
+                `Command finished with code: ${code}, signal: ${signal}`,
+              );
+              //Close the SSH connection
+              sshClient.end();
+            })
+            .on('data', (data) => {
+              console.log(`STDOUT: ${data}`);
+            })
+            .stderr.on('data', (data) => {
+              //console.error(`STDERR: ${data}`);
+              this.logger.error(`STDERR: ${data}`);
+            });
+        },
+      );
+    });
+
+    sshClient.on('error', (err) => {
+      console.error('Error connecting via SSH:', err);
+    });
+  }
+
+  //EVERY_3_MINUTES
+  //0 */3 * * * *
+  @Cron('0 */3 * * * *')
+  handleCronInUnimus() {
+    //this.logger.debug('Called when the current second is 45');
+    //console.log('Called when the current second is 3');
+    this.sshConnection();
+    //this.isDevicesInUnimus();
   }
 }
