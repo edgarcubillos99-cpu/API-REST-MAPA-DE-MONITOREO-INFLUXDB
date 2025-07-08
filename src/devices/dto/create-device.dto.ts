@@ -39,6 +39,20 @@ export class PingConfigDto {
   sizePackage: number;
 }
 
+export class SnmpSettingsDto {
+  @ApiProperty({ default: 'UDP' })
+  @IsString()
+  protocol: string;
+
+  @ApiProperty({ default: 161 })
+  @IsNumber()
+  port: number;
+
+  @ApiProperty({ default: '' })
+  @IsString()
+  community: string;
+}
+
 export class CreateDeviceDto {
   @ApiProperty()
   @IsNotEmpty()
@@ -93,22 +107,18 @@ export class CreateDeviceDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  @IsNumber()
-  portsnmp: number;
-
-  @ApiProperty()
-  @IsNotEmpty()
   @IsBoolean()
   Status: boolean;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  community: string;
 
   @ApiProperty({ required: false, type: PingConfigDto })
   @IsOptional()
   @ValidateNested()
   @Type(() => PingConfigDto)
   PingConfig?: PingConfigDto;
+
+  @ApiProperty({ required: false, type: SnmpSettingsDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SnmpSettingsDto)
+  SnmpSettings?: SnmpSettingsDto;
 }

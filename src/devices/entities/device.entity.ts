@@ -2,12 +2,15 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
 import { Position } from 'src/common/entities/position.entity';
 
-export class ConnectionSettings {
+export class SnmpSettings {
   @Prop({ type: String, default: 'UDP' })
   protocol: string;
 
   @Prop({ type: Number, default: 161 })
   port: number;
+
+  @Prop({ type: String, default: '' })
+  community: string;
 }
 
 @Schema({ timestamps: true })
@@ -39,24 +42,18 @@ export class Device {
   @Prop({ isRequired: true, default: 'down' })
   StatusIcmp: string;
 
-  @Prop({ isRequired: true, default: 161 })
-  portsnmp: number;
-
   @Prop({ type: Boolean })
   Status: boolean;
-
-  @Prop({ type: String })
-  community: string;
 
   @Prop({ type: Date, isRequired: true, default: Date.now() })
   lastChangeStatusTime: Date;
 
   @Prop({
-    type: ConnectionSettings,
+    type: SnmpSettings,
     required: true,
-    default: { protocol: 'UDP', port: 161 },
+    default: { protocol: 'UDP', port: 161, community: '' },
   })
-  ConnectionSettings: ConnectionSettings;
+  SnmpSettings: SnmpSettings;
 
   @Prop({ type: Boolean, default: false })
   inUnimus: boolean;
