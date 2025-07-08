@@ -38,6 +38,13 @@ services:
       PORT: ${PORT}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      UNIMUS_URL: ${UNIMUS_URL}
+      UNIMUS_TOKEN: ${UNIMUS_TOKEN}
+      SSH_HOST: ${SSH_HOST}
+      SSH_USER: ${SSH_USER}
+      SSH_PASSWORD: ${SSH_PASSWORD}
     depends_on:
       - mongo1
       - mongo-init

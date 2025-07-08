@@ -14,8 +14,9 @@ import { STATUS } from 'src/common/enums/status.enum';
 import { EVENT_LOGS } from 'src/common/enums/event-logs.enum.ts';
 import { Cron } from '@nestjs/schedule';
 import axios from 'axios';
+import * as path from 'path';
+import * as fs from 'fs';
 
-const path = require('path');
 const Client = require('ssh2').Client;
 
 @Injectable()
@@ -382,126 +383,178 @@ export class DevicesService {
   }
 
   async isDevicesInUnimus() {
-    //OBTENER TODAS LAS IPS DE LOS DISPOSITIVOS ACTIVOS
-    const result = await this._deviceModel.aggregate([
-      { $match: { isActive: true } },
-      { $project: { _id: 0, ip: 1 } },
-    ]);
+    try {
+      //OBTENER TODAS LAS IPS DE LOS DISPOSITIVOS ACTIVOS
+      const result = await this._deviceModel.aggregate([
+        { $match: { isActive: true } },
+        { $project: { _id: 0, ip: 1 } },
+      ]);
 
-    const ipDevices: string[] = result.map((device) => device.ip);
+      const ipDevices: string[] = result.map((device) => device.ip);
 
-    //console.log(ipDevices);
+      //console.log(ipDevices);
 
-    //let sortDevices = ipDevices.splice(0, 100);
-    let sortDevices = ['router-osn-candelero-25510.osnetpr.com'];
+      let sortDevices = ipDevices.splice(0, 10);
+      //let sortDevices = ['router-osn-candelero-25510.osnetpr.com'];
 
-    //console.log(sortDevices);
-    //HACER TODAS LAS PETICIONES EN PARALELO Y ESPERAR LOS RESULTADOS
-    const responses = await Promise.all(
-      sortDevices.map(async (ip) => {
-        try {
-          const response = await axios.get(
-            `${process.env.UNIMUS_URL}/api/v2/devices/findByAddress/${ip}`,
-            {
-              headers: {
-                Authorization: `Bearer ${process.env.UNIMUS_TOKEN}`,
+      //console.log(sortDevices);
+      //HACER TODAS LAS PETICIONES EN PARALELO Y ESPERAR LOS RESULTADOS
+      const responses = await Promise.all(
+        sortDevices.map(async (ip) => {
+          try {
+            const response = await axios.get(
+              `${process.env.UNIMUS_URL}/api/v2/devices/findByAddress/${ip}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${process.env.UNIMUS_TOKEN}`,
+                },
               },
-            },
-          );
-          return { ip, response };
-        } catch (error) {
-          // Si hay error (por ejemplo, 404), lo manejamos aquí
-          return { ip, response: null };
+            );
+            return { ip, response };
+          } catch (error) {
+            // Si hay error (por ejemplo, 404), lo manejamos aquí
+            return { ip, response: null };
+          }
+        }),
+      );
+
+      let deviceFound = 0;
+      let deviceNotFound = 0;
+
+      for (const { ip, response } of responses) {
+        if (response && response.status === 200 && response.data.length > 0) {
+          const deviceId = response.data[0].id;
+          //console.log(`Device with IP ${ip} found in Unimus with ID: ${deviceId}`,);
+          deviceFound++;
+        } else {
+          //console.log(`Device with IP ${ip} not found in Unimus`);
+          deviceNotFound++;
         }
-      }),
-    );
-
-    let deviceFound = 0;
-    let deviceNotFound = 0;
-
-    for (const { ip, response } of responses) {
-      if (response && response.status === 200 && response.data.length > 0) {
-        const deviceId = response.data[0].id;
-        console.log(
-          `Device with IP ${ip} found in Unimus with ID: ${deviceId}`,
-        );
-        deviceFound++;
-      } else {
-        console.log(`Device with IP ${ip} not found in Unimus`);
-        deviceNotFound++;
       }
+
+      this.logger.debug(
+        `devices - found: ${deviceFound}, not found: ${deviceNotFound}`,
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async sshConnection(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      //CREAR UNA NUEVA INSTANCIA DEL CLIENTE SSH
+      const sshClient = new Client();
+
+      //CONFIGURAR LOS PARÁMETROS DE CONEXIÓN
+      const connectionParams = {
+        host: process.env.SSH_HOST,
+        username: process.env.SSH_USER,
+        privateKey: require('fs').readFileSync(
+          path.join(process.cwd(), 'cert/id_rsa_unimus_programacion.cert'),
+        ),
+      };
+
+      //CONECTARSE AL SERVIDOR SSH
+      sshClient.connect(connectionParams);
+
+      sshClient.on('ready', () => {
+        //console.log('Connected via SSH!');
+        this.logger.debug('Connected via SSH!');
+
+        //NOW CAN EXECUTE COMMANDS, TRANSFER FILES, ETC.
+        //OBTENER EL CONTENIDO DEL ARCHIVO /var/lib/bind/osnetpr.com.hosts
+        sshClient.exec(
+          'docker exec bind cat /var/lib/bind/osnetpr.com.hosts',
+          (err, stream) => {
+            if (err) {
+              console.error('Error executing command:', err);
+              return;
+            }
+
+            let fileContent = '';
+
+            stream
+              .on('close', (code, signal) => {
+                //console.log(`Command finished with code: ${code}, signal: ${signal}`,);
+                this.logger.debug(
+                  `Command finished with code: ${code}, signal: ${signal}`,
+                );
+
+                const dataDir = path.join(__dirname, '..', 'data');
+
+                //CREAR DIRECTORIO SI NO EXISTE
+                if (!fs.existsSync(dataDir)) {
+                  fs.mkdirSync(dataDir, { recursive: true });
+                }
+
+                //GUARDAR EL ARCHIVO TXT
+                const txtPath = path.join(dataDir, 'osnetpr.com.hosts.txt');
+                fs.writeFileSync(txtPath, fileContent, 'utf8');
+                this.logger.debug(`Archivo TXT guardado en: ${txtPath}`);
+
+                //PROCESAR PARA CREAR EL JSON
+                this.processTxtToJson(dataDir, fileContent);
+
+                //CLOSE THE SSH CONNECTION
+                sshClient.end();
+                resolve();
+              })
+              .on('data', (data) => {
+                fileContent += data.toString();
+                //console.log(`STDOUT: ${data}`);
+              })
+              .stderr.on('data', (data) => {
+                //console.error(`STDERR: ${data}`);
+                this.logger.error(`STDERR: ${data}`);
+              });
+          },
+        );
+      });
+
+      sshClient.on('error', (err) => {
+        this.logger.error('Error connecting via SSH:', err);
+        reject(err);
+      });
+    });
+  }
+
+  processTxtToJson(dataDir, fileContent) {
+    const jsonPath = path.join(dataDir, 'osnetpr.com.hosts.json');
+    const dnsRecords = {};
+
+    //EXPRESIÓN REGULAR MANEJA TABS Y ESPACIOS
+    const regex =
+      /^([^\s]+\.osnetpr\.com\.?)[\t\s]+(?:\d+[\t\s]+)?IN[\t\s]+A[\t\s]+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/gim;
+
+    let match;
+    while ((match = regex.exec(fileContent)) !== null) {
+      const domain = match[1].replace(/\.$/, ''); //ELIMINAR PUNTO FINAL
+      const ip = match[2];
+      dnsRecords[ip] = domain;
     }
 
-    console.log(
-      'Total found:',
-      deviceFound,
-      'Total not found:',
-      deviceNotFound,
-    );
-  }
-
-  sshConnection() {
-    //CREAR UNA NUEVA INSTANCIA DEL CLIENTE SSH
-    const sshClient = new Client();
-
-    //CONFIGURAR LOS PARÁMETROS DE CONEXIÓN
-    const connectionParams = {
-      host: process.env.SSH_HOST,
-      username: process.env.SSH_USER,
-      privateKey: require('fs').readFileSync(
-        path.join(process.cwd(), 'cert/id_rsa_unimus_programacion.cert'),
-      ),
-    };
-
-    //CONECTARSE AL SERVIDOR SSH
-    sshClient.connect(connectionParams);
-
-    sshClient.on('ready', () => {
-      //console.log('Connected via SSH!');
-      this.logger.log('Connected via SSH!');
-
-      //NOW CAN EXECUTE COMMANDS, TRANSFER FILES, ETC.
-      //OBTENER EL CONTENIDO DEL ARCHIVO /var/lib/bind/osnetpr.com.hosts
-      sshClient.exec(
-        'docker exec bind cat /var/lib/bind/osnetpr.com.hosts',
-        (err, stream) => {
-          if (err) {
-            console.error('Error executing command:', err);
-            return;
-          }
-
-          stream
-            .on('close', (code, signal) => {
-              //console.log(`Command finished with code: ${code}, signal: ${signal}`,);
-              this.logger.log(
-                `Command finished with code: ${code}, signal: ${signal}`,
-              );
-              //Close the SSH connection
-              sshClient.end();
-            })
-            .on('data', (data) => {
-              console.log(`STDOUT: ${data}`);
-            })
-            .stderr.on('data', (data) => {
-              //console.error(`STDERR: ${data}`);
-              this.logger.error(`STDERR: ${data}`);
-            });
-        },
+    if (Object.keys(dnsRecords).length === 0) {
+      this.logger.warn('No se encontraron registros DNS válidos en el archivo');
+      // Debug: Mostrar contenido completo para diagnóstico
+      //this.logger.debug('Contenido completo del archivo:\n' + fileContent);
+    } else {
+      fs.writeFileSync(jsonPath, JSON.stringify(dnsRecords, null, 2), 'utf8');
+      //this.logger.debug(`Archivo JSON guardado en: ${jsonPath}`);
+      this.logger.debug(
+        `Registros encontrados: ${Object.keys(dnsRecords).length}`,
       );
-    });
-
-    sshClient.on('error', (err) => {
-      console.error('Error connecting via SSH:', err);
-    });
+    }
   }
 
-  //EVERY_3_MINUTES
+  //EVERY_5_MINUTES
   //0 */3 * * * *
-  @Cron('0 */3 * * * *')
-  handleCronInUnimus() {
-    //this.logger.debug('Called when the current second is 45');
-    //console.log('Called when the current second is 3');
-    this.sshConnection();
-    //this.isDevicesInUnimus();
+  @Cron('0 */1 * * * *')
+  async handleCronInUnimus() {
+    this.logger.debug('Iniciando proceso cron...');
+    await this.sshConnection();
+
+    this.logger.debug('Connection ssh completada con éxito');
+
+    await this.isDevicesInUnimus();
   }
 }
