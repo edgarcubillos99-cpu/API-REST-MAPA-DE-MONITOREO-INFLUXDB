@@ -547,8 +547,8 @@ export class DevicesService {
   }
 
   //EVERY_5_MINUTES
-  //0 */3 * * * *
-  @Cron('0 */1 * * * *')
+  //0 */5 * * * *
+  @Cron('0 */5 * * * *')
   async handleCronInUnimus() {
     this.logger.debug('Iniciando proceso cron...');
     await this.sshConnection();
