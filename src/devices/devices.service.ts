@@ -384,6 +384,17 @@ export class DevicesService {
 
   async isDevicesInUnimus() {
     try {
+      //LEER EL ARCHIVO JSON DE IPS A DNS
+      const dnsMapPath = path.join(
+        __dirname,
+        '..',
+        'data',
+        'osnetpr.com.hosts.json',
+      );
+      const dnsMap: Record<string, string> = JSON.parse(
+        fs.readFileSync(dnsMapPath, 'utf8'),
+      );
+
       //OBTENER TODAS LAS IPS DE LOS DISPOSITIVOS ACTIVOS
       const result = await this._deviceModel.aggregate([
         { $match: { isActive: true } },
@@ -392,50 +403,52 @@ export class DevicesService {
 
       const ipDevices: string[] = result.map((device) => device.ip);
 
-      //console.log(ipDevices);
+      let deviceFound = 0;
+      let deviceNotFound = 0;
 
-      let sortDevices = ipDevices.splice(0, 10);
-      //let sortDevices = ['router-osn-candelero-25510.osnetpr.com'];
+      //PROCESAR EN LOTES PARA NO SOBRECARGAR EL SERVIDOR
+      const batchSize = 100;
 
-      //console.log(sortDevices);
-      //HACER TODAS LAS PETICIONES EN PARALELO Y ESPERAR LOS RESULTADOS
-      const responses = await Promise.all(
-        sortDevices.map(async (ip) => {
+      for (let i = 0; i < ipDevices.length; i += batchSize) {
+        const batch = ipDevices.slice(i, i + batchSize);
+
+        const batchPromises = batch.map(async (ip) => {
+          //SI NO HAY DNS, USA LA IP ORIGINAL
+          const dns = dnsMap[ip] || ip;
           try {
             const response = await axios.get(
-              `${process.env.UNIMUS_URL}/api/v2/devices/findByAddress/${ip}`,
+              `${process.env.UNIMUS_URL}/api/v2/devices/findByAddress/${dns}`,
               {
                 headers: {
                   Authorization: `Bearer ${process.env.UNIMUS_TOKEN}`,
                 },
               },
             );
-            return { ip, response };
+
+            if (response.status === 200 && response.data) {
+              deviceFound++;
+              //console.log('device found ' + ip);
+              //ACTUALIZAR EL CAMPO inUnimus = true SI ESTÁ EN FALSE
+              await this._deviceModel.updateOne(
+                { ip, inUnimus: { $ne: true } }, //SOLO SI AÚN NO ESTÁ MARCADO
+                { $set: { inUnimus: true } },
+              );
+            } else {
+              deviceNotFound++;
+            }
           } catch (error) {
-            // Si hay error (por ejemplo, 404), lo manejamos aquí
-            return { ip, response: null };
+            deviceNotFound++;
           }
-        }),
-      );
+        });
 
-      let deviceFound = 0;
-      let deviceNotFound = 0;
-
-      for (const { ip, response } of responses) {
-        if (response && response.status === 200 && response.data.length > 0) {
-          const deviceId = response.data[0].id;
-          //console.log(`Device with IP ${ip} found in Unimus with ID: ${deviceId}`,);
-          deviceFound++;
-        } else {
-          //console.log(`Device with IP ${ip} not found in Unimus`);
-          deviceNotFound++;
-        }
+        await Promise.allSettled(batchPromises);
       }
 
       this.logger.debug(
         `devices - found: ${deviceFound}, not found: ${deviceNotFound}`,
       );
     } catch (error) {
+      this.logger.error('Error checking devices in Unimus:', error);
       throw error;
     }
   }
@@ -551,10 +564,20 @@ export class DevicesService {
   @Cron('0 */5 * * * *')
   async handleCronInUnimus() {
     this.logger.debug('Iniciando proceso cron...');
+    const startTime = performance.now();
     await this.sshConnection();
+    const endTime = performance.now();
 
-    this.logger.debug('Connection ssh completada con éxito');
+    this.logger.debug(
+      `Connection ssh completed - took ${endTime - startTime} milliseconds`,
+    );
 
+    const startTimeUnimus = performance.now();
     await this.isDevicesInUnimus();
+    const endTimeUnimus = performance.now();
+
+    this.logger.debug(
+      `isDevicesInUnimus completed - took ${endTimeUnimus - startTimeUnimus} milliseconds`,
+    );
   }
 }
