@@ -405,6 +405,7 @@ export class DevicesService {
 
       let deviceFound = 0;
       let deviceNotFound = 0;
+      const isDevicesInUnimus: string[] = [];
 
       //PROCESAR EN LOTES PARA NO SOBRECARGAR EL SERVIDOR
       const batchSize = 100;
@@ -427,12 +428,7 @@ export class DevicesService {
 
             if (response.status === 200 && response.data) {
               deviceFound++;
-              //console.log('device found ' + ip);
-              //ACTUALIZAR EL CAMPO inUnimus = true SI ESTÁ EN FALSE
-              await this._deviceModel.updateOne(
-                { ip, inUnimus: { $ne: true } }, //SOLO SI AÚN NO ESTÁ MARCADO
-                { $set: { inUnimus: true } },
-              );
+              isDevicesInUnimus.push(ip);
             } else {
               deviceNotFound++;
             }
@@ -443,6 +439,34 @@ export class DevicesService {
 
         await Promise.allSettled(batchPromises);
       }
+
+      //ACTUALIZA SI ESTÁ DENTRO DEL ARREGLO isDevicesInUnimus[] Y inUnimus ES false
+      const r1 = await this._deviceModel.updateMany(
+        {
+          isActive: true,
+          ip: { $in: isDevicesInUnimus },
+          inUnimus: false, //SOLO LOS QUE ESTÁN MARCADOS COMO false
+        },
+        { $set: { inUnimus: true } },
+      );
+      this.logger.debug(
+        `🔁 inUnimus false → true: matched=${r1.matchedCount}, modified=${r1.modifiedCount}`,
+      );
+
+      //ACTUALIZA PARA MARCAR COMO false LOS QUE NO ESTÁN EN isDevicesInUnimus[] Y inUnimus ES true
+      //MARCA COMO false LO QUE YA NO ESTÁ EN Unimus, pero antes sí
+      const r2 = await this._deviceModel.updateMany(
+        {
+          isActive: true,
+          ip: { $nin: isDevicesInUnimus }, //IPs NO ENCONTRADAS
+          inUnimus: true, //SOLO LOS QUE ESTÁN MARCADOS COMO true
+        },
+        { $set: { inUnimus: false } },
+      );
+
+      this.logger.debug(
+        `🔁 inUnimus true → false: matched=${r2.matchedCount}, modified=${r2.modifiedCount}`,
+      );
 
       this.logger.debug(
         `devices - found: ${deviceFound}, not found: ${deviceNotFound}`,
