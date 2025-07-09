@@ -66,7 +66,17 @@ export class CreateEnlaceDto {
   @ApiProperty()
   @IsOptional()
   @IsString()
-  @IsIn(['connected', 'down', 'none'])
+  @IsIn([
+    'up',
+    'down',
+    'testing',
+    'unknown',
+    'unknown (no estándar o propietario)',
+    'dormant',
+    'notPresent',
+    'lowerLayerDown',
+    'none',
+  ])
   lastStatus: string;
 
   @ApiProperty({ type: [String], required: false })

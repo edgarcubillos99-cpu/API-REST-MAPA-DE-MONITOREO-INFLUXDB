@@ -93,7 +93,8 @@ DeviceSchema.set('toJSON', {
   virtuals: true,
   versionKey: false,
   transform: function (doc, ret) {
-    delete ret.id;
-    return ret;
+    if ('id' in ret) {
+      delete ret.id;
+    }
   },
 });

@@ -30,7 +30,7 @@ export class Enlace {
   @Prop({ type: Number })
   idsnmp: number; // 1,2,3,4
 
-  @Prop({ type: String, default: 'none' })
+  @Prop({ type: String, default: 'unknown' })
   lastStatus: string;
 
   @Prop({ type: Date, isRequired: true, default: Date.now() })
