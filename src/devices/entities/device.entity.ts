@@ -9,7 +9,7 @@ export class SnmpSettings {
   @Prop({ type: Number, default: 161 })
   port: number;
 
-  @Prop({ type: String, default: '' })
+  @Prop({ type: String, default: 'osnsnmpro' })
   community: string;
 }
 
@@ -51,7 +51,7 @@ export class Device {
   @Prop({
     type: SnmpSettings,
     required: true,
-    default: { protocol: 'UDP', port: 161, community: '' },
+    default: { protocol: 'UDP', port: 161, community: 'osnsnmpro' },
   })
   SnmpSettings: SnmpSettings;
 

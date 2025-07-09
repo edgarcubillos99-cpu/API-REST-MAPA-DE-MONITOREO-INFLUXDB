@@ -561,23 +561,23 @@ export class DevicesService {
 
   //EVERY_5_MINUTES
   //0 */5 * * * *
-  @Cron('0 */5 * * * *')
-  async handleCronInUnimus() {
-    this.logger.debug('Iniciando proceso cron...');
-    const startTime = performance.now();
-    await this.sshConnection();
-    const endTime = performance.now();
+  // @Cron('0 */5 * * * *')
+  // async handleCronInUnimus() {
+  //   this.logger.debug('Iniciando proceso cron...');
+  //   const startTime = performance.now();
+  //   await this.sshConnection();
+  //   const endTime = performance.now();
 
-    this.logger.debug(
-      `Connection ssh completed - took ${endTime - startTime} milliseconds`,
-    );
+  //   this.logger.debug(
+  //     `Connection ssh completed - took ${endTime - startTime} milliseconds`,
+  //   );
 
-    const startTimeUnimus = performance.now();
-    await this.isDevicesInUnimus();
-    const endTimeUnimus = performance.now();
+  //   const startTimeUnimus = performance.now();
+  //   await this.isDevicesInUnimus();
+  //   const endTimeUnimus = performance.now();
 
-    this.logger.debug(
-      `isDevicesInUnimus completed - took ${endTimeUnimus - startTimeUnimus} milliseconds`,
-    );
-  }
+  //   this.logger.debug(
+  //     `isDevicesInUnimus completed - took ${endTimeUnimus - startTimeUnimus} milliseconds`,
+  //   );
+  // }
 }

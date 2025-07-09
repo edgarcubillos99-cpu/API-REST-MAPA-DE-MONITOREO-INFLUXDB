@@ -48,7 +48,7 @@ export class SnmpSettingsDto {
   @IsNumber()
   port: number;
 
-  @ApiProperty({ default: '' })
+  @ApiProperty({ default: 'osnsnmpro' })
   @IsString()
   community: string;
 }
