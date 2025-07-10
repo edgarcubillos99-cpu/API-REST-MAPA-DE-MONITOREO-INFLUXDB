@@ -16,6 +16,7 @@ import { Cron } from '@nestjs/schedule';
 import axios from 'axios';
 import * as path from 'path';
 import * as fs from 'fs';
+import { DataSource } from 'typeorm';
 
 const Client = require('ssh2').Client;
 
@@ -29,6 +30,7 @@ export class DevicesService {
     private readonly commonService: CommonService,
     private readonly mapasService: MapasService,
     private eventEmitter: EventEmitter2,
+    private readonly dataSource: DataSource,
   ) {}
 
   private readonly logger = new Logger(DevicesService.name);
@@ -477,6 +479,94 @@ export class DevicesService {
     }
   }
 
+  async isDevicesInLibrenms() {
+    const dnsMapPath = path.join(
+      __dirname,
+      '..',
+      'data',
+      'osnetpr.com.hosts.json',
+    );
+    const dnsMap: Record<string, string> = JSON.parse(
+      fs.readFileSync(dnsMapPath, 'utf8'),
+    );
+
+    const result = await this._deviceModel.aggregate([
+      { $match: { isActive: true } },
+      { $project: { _id: 0, ip: 1 } },
+    ]);
+
+    const ipDevices: string[] = result.map((device) => device.ip);
+
+    let deviceFound = 0;
+    let deviceNotFound = 0;
+    const isDevicesInLibrenms: string[] = [];
+
+    const batchSize = 10;
+
+    try {
+      await this.dataSource.query('SELECT 1');
+      this.logger.debug('Conexión a la base de datos LibreNMS exitosa');
+
+      for (let i = 0; i < ipDevices.length; i += batchSize) {
+        const batch = ipDevices.slice(i, i + batchSize);
+
+        const batchPromises = batch.map(async (ip) => {
+          const dns = dnsMap[ip] || ip;
+          try {
+            const result: any[] = await this.dataSource.query(
+              'SELECT hostname FROM devices WHERE hostname = ? AND status = 1 LIMIT 1',
+              [dns],
+            );
+
+            if (Array.isArray(result) && result.length > 0) {
+              deviceFound++;
+              isDevicesInLibrenms.push(ip);
+            } else {
+              deviceNotFound++;
+            }
+          } catch (error) {
+            this.logger.error(`Error querying LibreNMS DB for ${dns}:`, error);
+            deviceNotFound++;
+          }
+        });
+
+        await Promise.allSettled(batchPromises);
+      }
+
+      //MARCAR como inLibrenms: true donde aplica
+      const r1 = await this._deviceModel.updateMany(
+        {
+          isActive: true,
+          ip: { $in: isDevicesInLibrenms },
+          inLibrenms: false,
+        },
+        { $set: { inLibrenms: true } },
+      );
+      this.logger.debug(
+        `🔁 inLibrenms false → true: matched=${r1.matchedCount}, modified=${r1.modifiedCount}`,
+      );
+
+      //MARCAR como inLibrenms: false si ya no está
+      const r2 = await this._deviceModel.updateMany(
+        {
+          isActive: true,
+          ip: { $nin: isDevicesInLibrenms },
+          inLibrenms: true,
+        },
+        { $set: { inLibrenms: false } },
+      );
+      this.logger.debug(
+        `🔁 inLibrenms true → false: matched=${r2.matchedCount}, modified=${r2.modifiedCount}`,
+      );
+
+      this.logger.debug(
+        `LibreNMS - devices found: ${deviceFound}, not found: ${deviceNotFound}`,
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async sshConnection(): Promise<void> {
     return new Promise((resolve, reject) => {
       //CREAR UNA NUEVA INSTANCIA DEL CLIENTE SSH
@@ -576,9 +666,9 @@ export class DevicesService {
       //this.logger.debug('Contenido completo del archivo:\n' + fileContent);
     } else {
       fs.writeFileSync(jsonPath, JSON.stringify(dnsRecords, null, 2), 'utf8');
-      //this.logger.debug(`Archivo JSON guardado en: ${jsonPath}`);
+      this.logger.debug(`Archivo JSON guardado en: ${jsonPath}`);
       this.logger.debug(
-        `Registros encontrados: ${Object.keys(dnsRecords).length}`,
+        `Registros encontrados en /var/lib/bind/osnetpr.com.hosts: ${Object.keys(dnsRecords).length}`,
       );
     }
   }
@@ -602,6 +692,13 @@ export class DevicesService {
 
   //   this.logger.debug(
   //     `isDevicesInUnimus completed - took ${endTimeUnimus - startTimeUnimus} milliseconds`,
+  //   );
+
+  //   const startTimeLibrenms = performance.now();
+  //   await this.isDevicesInLibrenms();
+  //   const endTimeLibrenms = performance.now();
+  //   this.logger.debug(
+  //     `isDevicesInLibrenms completed - took ${endTimeLibrenms - startTimeLibrenms} milliseconds`,
   //   );
   // }
 }

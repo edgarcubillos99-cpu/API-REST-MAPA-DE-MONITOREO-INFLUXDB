@@ -14,6 +14,7 @@ import { EnlacesModule } from './enlaces/enlaces.module';
 import { EventLogsModule } from './event-logs/event-logs.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
   imports: [
@@ -27,10 +28,23 @@ import { ScheduleModule } from '@nestjs/schedule';
     EnlacesModule,
     EventEmitterModule.forRoot(),
     EventLogsModule,
-    ScheduleModule.forRoot()
+    ScheduleModule.forRoot(),
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: process.env.DB_HOST,
+      port: +(process.env.DB_PORT ?? 3306),
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_DATABASE,
+      synchronize: false, //NO MODIFICA LA DB
+      extra: {
+        connectTimeout: 30000, //30 segundos
+      },
+    }),
   ],
   controllers: [AppController],
-  providers: [AppService,
+  providers: [
+    AppService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
