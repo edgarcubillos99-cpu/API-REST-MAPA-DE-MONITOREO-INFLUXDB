@@ -107,6 +107,7 @@ export class MapasService {
           AmountDevices: 1,
           Enlaces: 1,
           AmountEnlaces: 1,
+          StatusDevices: 1,
           createdAt: 1,
           updatedAt: 1,
         },
