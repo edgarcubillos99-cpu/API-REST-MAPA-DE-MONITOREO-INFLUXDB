@@ -17,11 +17,14 @@ import axios from 'axios';
 import * as path from 'path';
 import * as fs from 'fs';
 import { DataSource } from 'typeorm';
+import amqp from 'amqp-connection-manager';
 
 const Client = require('ssh2').Client;
 
 @Injectable()
 export class DevicesService {
+  private channelWrapper: any;
+
   constructor(
     @InjectModel(Device.name) private _deviceModel: Model<Device>,
     @InjectModel(Mapa.name) private _mapaModel: Model<Mapa>,
@@ -31,7 +34,16 @@ export class DevicesService {
     private readonly mapasService: MapasService,
     private eventEmitter: EventEmitter2,
     private readonly dataSource: DataSource,
-  ) {}
+  ) {
+    const connectionRabbitMQ = amqp.connect([process.env.RABBITMQ_URL]);
+    this.channelWrapper = connectionRabbitMQ.createChannel({
+      json: true,
+      setup: (channel: any) => {
+        //NO DECLARAMOS LA COLA AQUI YA QUE SERAN DINAMICAS
+        return Promise.resolve();
+      },
+    });
+  }
 
   private readonly logger = new Logger(DevicesService.name);
 
@@ -385,33 +397,35 @@ export class DevicesService {
   }
 
   async isDevicesInUnimus() {
+    //LEER EL ARCHIVO JSON DE IPS A DNS
+    const dnsMapPath = path.join(
+      __dirname,
+      '..',
+      'data',
+      'osnetpr.com.hosts.json',
+    );
+    const dnsMap: Record<string, string> = JSON.parse(
+      fs.readFileSync(dnsMapPath, 'utf8'),
+    );
+
+    //OBTENER TODAS LAS IPS DE LOS DISPOSITIVOS ACTIVOS
+    const result = await this._deviceModel.aggregate([
+      { $match: { isActive: true } },
+      { $project: { _id: 0, ip: 1 } },
+    ]);
+
+    const ipDevices: string[] = result.map((device) => device.ip);
+
+    let deviceFound = 0;
+    let deviceNotFound = 0;
+    const isDevicesInUnimus: string[] = [];
+    let r1DevicesToUpdate: any[] = [];
+    let r2DevicesToUpdate: any[] = [];
+
+    //PROCESAR EN LOTES PARA NO SOBRECARGAR EL SERVIDOR
+    const batchSize = 100;
+
     try {
-      //LEER EL ARCHIVO JSON DE IPS A DNS
-      const dnsMapPath = path.join(
-        __dirname,
-        '..',
-        'data',
-        'osnetpr.com.hosts.json',
-      );
-      const dnsMap: Record<string, string> = JSON.parse(
-        fs.readFileSync(dnsMapPath, 'utf8'),
-      );
-
-      //OBTENER TODAS LAS IPS DE LOS DISPOSITIVOS ACTIVOS
-      const result = await this._deviceModel.aggregate([
-        { $match: { isActive: true } },
-        { $project: { _id: 0, ip: 1 } },
-      ]);
-
-      const ipDevices: string[] = result.map((device) => device.ip);
-
-      let deviceFound = 0;
-      let deviceNotFound = 0;
-      const isDevicesInUnimus: string[] = [];
-
-      //PROCESAR EN LOTES PARA NO SOBRECARGAR EL SERVIDOR
-      const batchSize = 100;
-
       for (let i = 0; i < ipDevices.length; i += batchSize) {
         const batch = ipDevices.slice(i, i + batchSize);
 
@@ -442,6 +456,23 @@ export class DevicesService {
         await Promise.allSettled(batchPromises);
       }
 
+      r1DevicesToUpdate = await this._deviceModel.aggregate([
+        {
+          $match: {
+            isActive: true,
+            ip: { $in: isDevicesInUnimus },
+            inUnimus: false,
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+          },
+        },
+      ]);
+
+      // console.log(r1DevicesToUpdate);
+
       //ACTUALIZA SI ESTÁ DENTRO DEL ARREGLO isDevicesInUnimus[] Y inUnimus ES false
       const r1 = await this._deviceModel.updateMany(
         {
@@ -454,6 +485,23 @@ export class DevicesService {
       this.logger.debug(
         `🔁 inUnimus false → true: matched=${r1.matchedCount}, modified=${r1.modifiedCount}`,
       );
+
+      r2DevicesToUpdate = await this._deviceModel.aggregate([
+        {
+          $match: {
+            isActive: true,
+            ip: { $nin: isDevicesInUnimus },
+            inUnimus: true,
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+          },
+        },
+      ]);
+
+      // console.log(r2DevicesToUpdate);
 
       //ACTUALIZA PARA MARCAR COMO false LOS QUE NO ESTÁN EN isDevicesInUnimus[] Y inUnimus ES true
       //MARCA COMO false LO QUE YA NO ESTÁ EN Unimus, pero antes sí
@@ -476,6 +524,20 @@ export class DevicesService {
     } catch (error) {
       this.logger.error('Error checking devices in Unimus:', error);
       throw error;
+    }
+
+    const devicesToUpdate = [...r1DevicesToUpdate, ...r2DevicesToUpdate];
+    if (devicesToUpdate.length > 0) {
+      // console.log('devicesToUpdate isDeviceinUnimus', devicesToUpdate);
+      const devicesToQueue: string[] = devicesToUpdate.map((device) =>
+        device._id.toString(),
+      );
+
+      // console.log('devicesToQueue isDeviceinUnimus', devicesToQueue);
+
+      // console.log('ENTRO A isDevicesInUnimus');
+      //console.log(devicesToQueue.length);
+      await this.sendToRabbitMQByMapUUID(devicesToQueue, 'unimus');
     }
   }
 
@@ -500,6 +562,8 @@ export class DevicesService {
     let deviceFound = 0;
     let deviceNotFound = 0;
     const isDevicesInLibrenms: string[] = [];
+    let r1DevicesToUpdate: any[] = [];
+    let r2DevicesToUpdate: any[] = [];
 
     const batchSize = 10;
 
@@ -533,6 +597,21 @@ export class DevicesService {
         await Promise.allSettled(batchPromises);
       }
 
+      r1DevicesToUpdate = await this._deviceModel.aggregate([
+        {
+          $match: {
+            isActive: true,
+            ip: { $in: isDevicesInLibrenms },
+            inLibrenms: false,
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+          },
+        },
+      ]);
+
       //MARCAR como inLibrenms: true donde aplica
       const r1 = await this._deviceModel.updateMany(
         {
@@ -545,6 +624,21 @@ export class DevicesService {
       this.logger.debug(
         `🔁 inLibrenms false → true: matched=${r1.matchedCount}, modified=${r1.modifiedCount}`,
       );
+
+      r2DevicesToUpdate = await this._deviceModel.aggregate([
+        {
+          $match: {
+            isActive: true,
+            ip: { $nin: isDevicesInLibrenms },
+            inLibrenms: true,
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+          },
+        },
+      ]);
 
       //MARCAR como inLibrenms: false si ya no está
       const r2 = await this._deviceModel.updateMany(
@@ -564,6 +658,15 @@ export class DevicesService {
       );
     } catch (error) {
       throw error;
+    }
+
+    const devicesToUpdate = [...r1DevicesToUpdate, ...r2DevicesToUpdate];
+    if (devicesToUpdate.length > 0) {
+      const devicesToQueue: string[] = devicesToUpdate.map((device) =>
+        device._id.toString(),
+      );
+
+      await this.sendToRabbitMQByMapUUID(devicesToQueue, 'librenms');
     }
   }
 
@@ -673,32 +776,82 @@ export class DevicesService {
     }
   }
 
+  private async sendToRabbitMQByMapUUID(
+    devicesId: string[],
+    type: 'unimus' | 'librenms',
+  ): Promise<void> {
+    if (!devicesId.length) return;
+
+    // console.log('ENTRO A ENVIAR A RABBIT');
+    this.logger.debug(`Devices a actualizar ${type}, ${devicesId.length}`);
+
+    //OBTENER LOS DISPOSITIVOS COMPLETOS CON SUS MapUUIDs
+    const affectedDevices = await this._deviceModel
+      .find({
+        _id: { $in: devicesId },
+      })
+      .lean();
+
+    const sendPromises = affectedDevices.flatMap((device) => {
+      return device.MapUUID.map(async (mapUUID) => {
+        const queueName = mapUUID.toString();
+
+        try {
+          //await this.channelWrapper.assertQueue(queueName, { durable: true });
+
+          const message = {
+            _id: device._id.toString(),
+            NewStatus: device.StatusIcmp,
+            MapUUID: [mapUUID.toString()],
+            Type: type,
+          };
+
+          await this.channelWrapper.sendToQueue(queueName, message, {
+            persistent: true,
+          });
+
+          //this.logger.debug(`RabbitMQ [${queueName}]: ${JSON.stringify(message)}`);
+        } catch (error) {
+          this.logger.error(
+            `Error enviando mensaje a cola ${queueName}:`,
+            error,
+          );
+        }
+      });
+    });
+
+    await Promise.all(sendPromises);
+    // this.logger.debug(
+    //   `Eventos ${type} enviados a ${sendPromises.length} colas específicas`,
+    // );
+  }
+
   //EVERY_5_MINUTES
   //0 */5 * * * *
-  // @Cron('0 */5 * * * *')
-  // async handleCronInUnimus() {
-  //   this.logger.debug('Iniciando proceso cron...');
-  //   const startTime = performance.now();
-  //   await this.sshConnection();
-  //   const endTime = performance.now();
+  @Cron('0 */5 * * * *')
+  async handleCronInUnimus() {
+    this.logger.debug('Iniciando proceso cron...');
+    const startTime = performance.now();
+    await this.sshConnection();
+    const endTime = performance.now();
 
-  //   this.logger.debug(
-  //     `Connection ssh completed - took ${endTime - startTime} milliseconds`,
-  //   );
+    this.logger.debug(
+      `Connection ssh completed - took ${endTime - startTime} milliseconds`,
+    );
 
-  //   const startTimeUnimus = performance.now();
-  //   await this.isDevicesInUnimus();
-  //   const endTimeUnimus = performance.now();
+    const startTimeUnimus = performance.now();
+    await this.isDevicesInUnimus();
+    const endTimeUnimus = performance.now();
 
-  //   this.logger.debug(
-  //     `isDevicesInUnimus completed - took ${endTimeUnimus - startTimeUnimus} milliseconds`,
-  //   );
+    this.logger.debug(
+      `isDevicesInUnimus completed - took ${endTimeUnimus - startTimeUnimus} milliseconds`,
+    );
 
-  //   const startTimeLibrenms = performance.now();
-  //   await this.isDevicesInLibrenms();
-  //   const endTimeLibrenms = performance.now();
-  //   this.logger.debug(
-  //     `isDevicesInLibrenms completed - took ${endTimeLibrenms - startTimeLibrenms} milliseconds`,
-  //   );
-  // }
+    const startTimeLibrenms = performance.now();
+    await this.isDevicesInLibrenms();
+    const endTimeLibrenms = performance.now();
+    this.logger.debug(
+      `isDevicesInLibrenms completed - took ${endTimeLibrenms - startTimeLibrenms} milliseconds`,
+    );
+  }
 }
