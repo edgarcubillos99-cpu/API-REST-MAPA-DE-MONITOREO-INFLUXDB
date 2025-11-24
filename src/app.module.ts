@@ -15,6 +15,7 @@ import { EventLogsModule } from './event-logs/event-logs.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AlertsModule } from './alerts/alerts.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         connectTimeout: 30000, //30 segundos
       },
     }),
+    AlertsModule,
   ],
   controllers: [AppController],
   providers: [

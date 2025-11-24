@@ -1,14 +1,14 @@
 import {
   ConflictException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
-  NotFoundException,
 } from '@nestjs/common';
 
 @Injectable()
 export class CommonService {
   handleExceptions(error: any) {
-    if (error instanceof NotFoundException) {
+    if (error instanceof HttpException) {
       throw error;
     }
 
@@ -19,6 +19,8 @@ export class CommonService {
     }
 
     console.log(error);
-    throw new InternalServerErrorException(`Can't process request - Check server logs`);
+    throw new InternalServerErrorException(
+      `Can't process request - Check server logs`,
+    );
   }
 }
