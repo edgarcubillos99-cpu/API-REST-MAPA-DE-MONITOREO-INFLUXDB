@@ -1,7 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayUnique,
+  IsArray,
   IsIn,
+  IsMongoId,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -37,4 +40,14 @@ export class CreateMapaDto {
   @IsString()
   @IsIn([STATUS.UP, STATUS.DOWN])
   StatusDevices: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsMongoId({
+    each: true,
+    message: 'mapsInternal debe ser un ObjectId válido de MongoDB',
+  })
+  mapsInternal?: string[];
 }

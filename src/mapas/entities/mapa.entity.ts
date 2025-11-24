@@ -45,6 +45,17 @@ export class Mapa {
     default: { up: 0, down: 0 },
   })
   AmountStatusDevicesSnmp: AmountStatusDevicesSnmp;
+
+  @Prop({
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Mapa' }],
+  })
+  mapsInternal: Mapa[];
+
+  @Prop({ type: Number, default: 0 })
+  amountSubmaps: number;
+
+  @Prop({ isRequired: true, default: 'down' })
+  statusSubmaps: string;
 }
 
 export const MapaSchema = SchemaFactory.createForClass(Mapa);

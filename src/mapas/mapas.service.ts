@@ -26,12 +26,22 @@ export class MapasService {
         name: createMapaDto.name,
       });
 
+      //CALCULAR amountSubmaps BASADO EN mapsInternal
+      const amountSubmaps = createMapaDto.mapsInternal
+        ? createMapaDto.mapsInternal.length
+        : 0;
+
+      const mapaData = {
+        ...createMapaDto,
+        amountSubmaps,
+      };
+
       if (foundMapaDesactivated) {
         //REACTIVAR EL MAPA Y ACTUALIZAR SUS CAMPOS
         await foundMapaDesactivated.updateOne(
           {
             isActive: true,
-            ...createMapaDto,
+            ...mapaData,
           },
           { session },
         );
@@ -48,7 +58,7 @@ export class MapasService {
       }
 
       //SI NO EXISTE, CREAR NORMALMENTE
-      const mapa = await this._mapaModel.create([createMapaDto], { session });
+      const mapa = await this._mapaModel.create([mapaData], { session });
 
       //CONFIRMANDO LA TRANSACCION
       await session.commitTransaction();
@@ -171,7 +181,14 @@ export class MapasService {
   async update(id: string, updateMapaDto: UpdateMapaDto) {
     try {
       const mapa = await this.findById(id);
-      const updatedMapa = await mapa.updateOne(updateMapaDto);
+
+      //SI mapsInternal VIENE EN EL UPDATE, CALCULAR amountSubmaps
+      const updateData: any = { ...updateMapaDto };
+      if (updateMapaDto.mapsInternal) {
+        updateData['amountSubmaps'] = updateMapaDto.mapsInternal?.length || 0;
+      }
+
+      const updatedMapa = await mapa.updateOne(updateData);
 
       return updatedMapa;
     } catch (error) {
