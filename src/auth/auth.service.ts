@@ -22,7 +22,9 @@ export class AuthService {
   async login(loginAuthDto: LoginAuthDto) {
     const { email, password } = loginAuthDto;
 
-    const user = await this._userModel.findOne({ email });
+    const user = await this._userModel
+      .findOne({ email })
+      .select('+password');
 
     // SI NO SE ENCUENTRA UN USUARIO CON ESE EMAIL
     if (!user)
