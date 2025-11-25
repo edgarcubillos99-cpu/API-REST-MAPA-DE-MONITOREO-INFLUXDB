@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { EventLog } from './entities/event-log.entity';
 import { Model } from 'mongoose';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { EventLogsPaginationDto } from './dto/event-logs-pagination.dto';
 
 @Injectable()
 export class EventLogsService {
@@ -9,7 +11,9 @@ export class EventLogsService {
     @InjectModel(EventLog.name) private _eventLogModel: Model<EventLog>,
   ) {}
 
-  async findAll() {
+  async findAll(eventLogsPaginationDto: EventLogsPaginationDto) {
+    const { limit = 10, offset = 0 } = eventLogsPaginationDto;
+
     // const eventLogs = await this._eventLogModel
     //   .find()
     //   .populate({
@@ -33,7 +37,10 @@ export class EventLogsService {
     //   ...rest,
     // }));
 
-    const eventLogs = await this._eventLogModel.find().exec();
+    const eventLogs = await this._eventLogModel
+      .find()
+      .skip(offset)
+      .limit(limit);
 
     return eventLogs;
   }
@@ -49,10 +56,7 @@ export class EventLogsService {
 
     // return eventLog;
 
-    const eventLog = await this._eventLogModel
-      .find({ deviceId: deviceId })
-
-      .exec();
+    const eventLog = await this._eventLogModel.find({ deviceId: deviceId });
 
     return eventLog;
   }
