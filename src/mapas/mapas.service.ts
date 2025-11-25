@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateMapaDto } from './dto/create-mapa.dto';
 import { UpdateMapaDto } from './dto/update-mapa.dto';
 import { Mapa } from './entities/mapa.entity';
@@ -20,6 +24,11 @@ export class MapasService {
     session.startTransaction();
 
     try {
+      //VALIDAR QUE LOS MAPAS INTERNOS EXISTAN (SI SE PROPORCIONAN)
+      if (createMapaDto.mapsInternal && createMapaDto.mapsInternal.length > 0) {
+        await this.validateMapsInternal(createMapaDto.mapsInternal);
+      }
+
       //BUSCAR SI EXISTE UN MAP DESACTIVADO CON EL MISMO NOMBRE
       const foundMapaDesactivated = await this._mapaModel.findOne({
         isActive: false,
@@ -182,6 +191,11 @@ export class MapasService {
     try {
       const mapa = await this.findById(id);
 
+      //VALIDAR QUE LOS MAPAS INTERNOS EXISTAN (SI SE PROPORCIONAN)
+      if (updateMapaDto.mapsInternal && updateMapaDto.mapsInternal.length > 0) {
+        await this.validateMapsInternal(updateMapaDto.mapsInternal);
+      }
+
       //SI mapsInternal VIENE EN EL UPDATE, CALCULAR amountSubmaps
       const updateData: any = { ...updateMapaDto };
       if (updateMapaDto.mapsInternal) {
@@ -203,5 +217,30 @@ export class MapasService {
     await mapa.updateOne({ isActive: false });
 
     return `Mapa ${mapa.name} Delete!`;
+  }
+
+  /**
+   * @description Validar que los mapas internos existan
+   * @param mapsInternalIds: string[] - Array de IDs de mapas internos
+   * @throws BadRequestException - Si alguno de los mapas internos no existe o no está activo
+   * @returns void - Si todos los mapas internos existen y están activos
+   */
+  async validateMapsInternal(mapsInternalIds: string[]): Promise<void> {
+    //VALIDAR QUE LOS MAPAS INTERNOS EXISTAN
+    const mapas = await this._mapaModel.find({
+      _id: { $in: mapsInternalIds },
+      isActive: true,
+    });
+
+    //ENCONTRAR LOS IDs QUE NO EXISTEN
+    const foundIds = mapas.map((mapa) => mapa._id.toString());
+    const missingIds = mapsInternalIds.filter((id) => !foundIds.includes(id));
+
+    //VERIFICAR QUE TODOS LOS IDs EXISTAN
+    if (mapas.length !== mapsInternalIds.length) {
+      throw new BadRequestException(
+        `The following map IDs do not exist or are not active: ${missingIds.join(', ')}`,
+      );
+    }
   }
 }
