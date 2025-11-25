@@ -12,7 +12,6 @@ import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 import { ApiTags } from '@nestjs/swagger';
-import { Public } from 'src/common/decorator/public.decorator';
 import { AuthSwagger } from 'src/common/decorator/auth-swagger.decorator';
 import { ParsemongoidPipe } from 'src/common/pipes/parse-mongoid.pipe';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
@@ -28,14 +27,14 @@ export class DevicesController {
     return this.devicesService.create(createDeviceDto);
   }
 
-  @Public()
   @Get()
+  @AuthSwagger()
   findAll(@Query() paginationDto: PaginationDto) {
     return this.devicesService.findAll(paginationDto);
   }
 
-  @Public()
   @Get(':id')
+  @AuthSwagger()
   findById(@Param('id', ParsemongoidPipe) id: string) {
     return this.devicesService.findById(id);
   }

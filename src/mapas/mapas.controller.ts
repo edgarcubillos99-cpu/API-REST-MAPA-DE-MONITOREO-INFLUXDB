@@ -12,7 +12,6 @@ import { MapasService } from './mapas.service';
 import { CreateMapaDto } from './dto/create-mapa.dto';
 import { UpdateMapaDto } from './dto/update-mapa.dto';
 import { ApiTags } from '@nestjs/swagger';
-import { Public } from 'src/common/decorator/public.decorator';
 import { AuthSwagger } from 'src/common/decorator/auth-swagger.decorator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ParsemongoidPipe } from 'src/common/pipes/parse-mongoid.pipe';
@@ -28,20 +27,20 @@ export class MapasController {
     return this.mapasService.create(createMapaDto);
   }
 
-  @Public()
   @Get()
+  @AuthSwagger()
   findAll(@Query() paginationDto: PaginationDto) {
     return this.mapasService.findAll(paginationDto);
   }
 
-  @Public()
   @Get(':id')
+  @AuthSwagger()
   findById(@Param('id', ParsemongoidPipe) id: string) {
     return this.mapasService.findById(id);
   }
 
-  @Public()
   @Get(':id/devices')
+  @AuthSwagger()
   findAllDevicesInMapa(
     @Param('id', ParsemongoidPipe) id: string,
     @Query() paginationDto: PaginationDto,

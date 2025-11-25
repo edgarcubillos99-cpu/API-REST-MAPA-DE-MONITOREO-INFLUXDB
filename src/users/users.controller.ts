@@ -12,7 +12,6 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ParsemongoidPipe } from 'src/common/pipes/parse-mongoid.pipe';
-import { Public } from 'src/common/decorator/public.decorator';
 import { AuthSwagger } from 'src/common/decorator/auth-swagger.decorator';
 import { ApiTags } from '@nestjs/swagger';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
@@ -28,14 +27,14 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @Public()
   @Get()
+  @AuthSwagger()
   findAll(@Query() paginationDto: PaginationDto) {
     return this.usersService.findAll(paginationDto);
   }
 
-  @Public()
   @Get(':id')
+  @AuthSwagger()
   findById(@Param('id', ParsemongoidPipe) id: string) {
     return this.usersService.findById(id);
   }
