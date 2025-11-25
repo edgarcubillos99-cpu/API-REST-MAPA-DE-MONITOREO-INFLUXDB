@@ -32,6 +32,12 @@ export class Alert {
 
   @Prop({ isRequired: true })
   severity: string;
+
+  @Prop({ isRequired: false, default: null })
+  iconAlert: string;
+
+  @Prop({ isRequired: false, default: null })
+  colorAlert: string;
 }
 
 export const AlertSchema = SchemaFactory.createForClass(Alert);

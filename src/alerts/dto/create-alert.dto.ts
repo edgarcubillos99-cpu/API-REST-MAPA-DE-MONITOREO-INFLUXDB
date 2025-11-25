@@ -67,4 +67,12 @@ export class CreateAlertDto {
     message: 'severity has to be low, medium or high',
   })
   severity: string;
+
+  @IsString()
+  @IsOptional()
+  iconAlert?: string;
+
+  @IsString()
+  @IsOptional()
+  colorAlert?: string;
 }
