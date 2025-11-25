@@ -4,10 +4,14 @@ import { AlertsController } from './alerts.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Alert, AlertSchema } from './entities/alert.entity';
 import { CommonModule } from 'src/common/common.module';
+import { Device, DeviceSchema } from 'src/devices/entities/device.entity';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Alert.name, schema: AlertSchema }]),
+    MongooseModule.forFeature([
+      { name: Alert.name, schema: AlertSchema },
+      { name: Device.name, schema: DeviceSchema },
+    ]),
     CommonModule,
   ],
   controllers: [AlertsController],
