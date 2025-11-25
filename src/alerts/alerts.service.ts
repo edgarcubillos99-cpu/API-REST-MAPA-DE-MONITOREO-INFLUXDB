@@ -10,6 +10,7 @@ import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { CommonService } from 'src/common/common.service';
 import { Device } from 'src/devices/entities/device.entity';
+import { AlertsPaginationDto } from './dto/alerts-pagination.dto';
 
 @Injectable()
 export class AlertsService {
@@ -34,9 +35,30 @@ export class AlertsService {
     }
   }
 
-  async findAll() {
+  async findAll(alertsPaginationDto: AlertsPaginationDto) {
+    const {
+      limit = 10,
+      offset = 0,
+      description,
+      oid,
+      operator,
+    } = alertsPaginationDto;
+
+    //FILTRO PARA LA BÚSQUEDAS
+    const filter = {
+      ...(description && {
+        description: { $regex: description, $options: 'i' },
+      }),
+      ...(oid && { oid }),
+      ...(operator && { operator: { $regex: operator, $options: 'i' } }),
+    };
+
     try {
-      const alerts = await this._alertsModel.find();
+      const alerts = await this._alertsModel
+        .find(filter)
+        .populate('devices', '_id ip make name')
+        .skip(offset)
+        .limit(limit);
 
       return alerts;
     } catch (error) {

@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { AlertsService } from './alerts.service';
 import { CreateAlertDto } from './dto/create-alert.dto';
@@ -13,6 +14,7 @@ import { UpdateAlertDto } from './dto/update-alert.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthSwagger } from 'src/common/decorator/auth-swagger.decorator';
 import { ParsemongoidPipe } from 'src/common/pipes/parse-mongoid.pipe';
+import { AlertsPaginationDto } from './dto/alerts-pagination.dto';
 
 @ApiTags('alerts')
 @Controller('alerts')
@@ -27,8 +29,8 @@ export class AlertsController {
 
   @Get()
   @AuthSwagger()
-  findAll() {
-    return this.alertsService.findAll();
+  findAll(@Query() alertsPaginationDto: AlertsPaginationDto) {
+    return this.alertsService.findAll(alertsPaginationDto);
   }
 
   @Get(':id')
