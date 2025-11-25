@@ -54,17 +54,14 @@ export class SnmpSettingsDto {
 }
 
 export class CreateDeviceDto {
-  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   ip: string;
 
-  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   description: string;
 
-  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   @IsIn([
@@ -79,7 +76,6 @@ export class CreateDeviceDto {
   ])
   make: string;
 
-  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   name: string;
@@ -99,13 +95,11 @@ export class CreateDeviceDto {
   })
   MapUUID: string[];
 
-  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   @IsIn([STATUS.UP, STATUS.DOWN])
   StatusIcmp: string;
 
-  @ApiProperty()
   @IsNotEmpty()
   @IsBoolean()
   Status: boolean;

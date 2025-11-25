@@ -15,7 +15,6 @@ import { Type } from 'class-transformer';
 import { MEDIO_TRANSMICION } from 'src/common/enums/medio-transmicion.enum';
 
 class DeviceInterfaceDestinationDto {
-  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   @Matches(/^[0-9a-fA-F]{24}$/, {
@@ -23,19 +22,16 @@ class DeviceInterfaceDestinationDto {
   })
   DeviceDestino: string;
 
-  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   InterfaceDestino: string;
 }
 
 export class CreateEnlaceDto {
-  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   description: string;
 
-  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   @Matches(/^[0-9a-fA-F]{24}$/, {
@@ -43,12 +39,10 @@ export class CreateEnlaceDto {
   })
   DeviceOrigen: string;
 
-  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   InterfaceOrigen: string;
 
-  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   @IsIn([
@@ -58,12 +52,10 @@ export class CreateEnlaceDto {
   ])
   tipoMedio: string;
 
-  @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
   idsnmp: number;
 
-  @ApiProperty()
   @IsOptional()
   @IsString()
   @IsIn([

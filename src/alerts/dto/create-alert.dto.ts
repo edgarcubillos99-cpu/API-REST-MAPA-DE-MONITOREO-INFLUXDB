@@ -1,4 +1,3 @@
-import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayUnique,
   IsArray,
@@ -15,17 +14,14 @@ import {
 } from 'class-validator';
 
 export class CreateAlertDto {
-  @ApiProperty()
   @IsString()
   @IsOptional()
   description: string;
 
-  @ApiProperty()
   @IsString()
   @IsNotEmpty()
   oid: string;
 
-  @ApiProperty()
   @IsString()
   @IsNotEmpty()
   @IsIn(['>', '<', '=', '!=', '>=', '<='], {
@@ -33,7 +29,6 @@ export class CreateAlertDto {
   })
   operator: string;
 
-  @ApiProperty()
   @IsArray()
   @IsNotEmpty()
   @ArrayUnique()
@@ -43,20 +38,17 @@ export class CreateAlertDto {
   })
   devices: string[];
 
-  @ApiProperty()
   @IsNumber()
   @IsNumber()
   @IsOptional()
   @Min(0)
   countAlerts?: number;
 
-  @ApiProperty()
   @IsNumber()
   @IsOptional()
   @IsPositive()
   maxNumAlerts?: number;
 
-  @ApiProperty()
   @IsString()
   @IsNotEmpty()
   @Matches(/^\d+[smhd]$/, {
@@ -65,12 +57,10 @@ export class CreateAlertDto {
   })
   delay: string;
 
-  @ApiProperty()
   @IsDateString()
   @IsOptional()
   lastAlert?: string;
 
-  @ApiProperty()
   @IsString()
   @IsNotEmpty()
   @IsIn(['low', 'medium', 'high'], {
