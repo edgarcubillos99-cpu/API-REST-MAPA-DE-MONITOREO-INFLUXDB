@@ -127,6 +127,9 @@ export class MapasService {
           Enlaces: 1,
           AmountEnlaces: 1,
           StatusDevices: 1,
+          mapsInternal: 1,
+          amountSubmaps: 1,
+          statusSubmaps: 1,
           createdAt: 1,
           updatedAt: 1,
         },
@@ -142,7 +145,7 @@ export class MapasService {
         _id: id,
         isActive: true,
       })
-      .exec();
+      .populate('mapsInternal', '_id name latitude longitude position Devices');
 
     if (!mapa) throw new NotFoundException(`Mapa with id ${id} not found`);
 
