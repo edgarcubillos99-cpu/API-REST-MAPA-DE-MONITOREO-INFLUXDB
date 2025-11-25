@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
+  IsBoolean,
   IsIn,
   IsMongoId,
   IsNotEmpty,
@@ -36,6 +37,10 @@ export class CreateMapaDto {
   @IsString()
   @IsIn([STATUS.UP, STATUS.DOWN])
   StatusDevices: string;
+
+  @IsOptional()
+  @IsBoolean()
+  lock?: boolean;
 
   @IsOptional()
   @IsArray()

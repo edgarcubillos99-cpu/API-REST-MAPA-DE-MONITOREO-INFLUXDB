@@ -56,6 +56,9 @@ export class Mapa {
 
   @Prop({ isRequired: true, default: 'down' })
   statusSubmaps: string;
+
+  @Prop({ isRequired: true, default: true })
+  lock: boolean;
 }
 
 export const MapaSchema = SchemaFactory.createForClass(Mapa);

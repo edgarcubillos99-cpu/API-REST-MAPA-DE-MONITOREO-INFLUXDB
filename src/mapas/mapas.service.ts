@@ -130,6 +130,7 @@ export class MapasService {
           mapsInternal: 1,
           amountSubmaps: 1,
           statusSubmaps: 1,
+          lock: 1,
           createdAt: 1,
           updatedAt: 1,
         },
