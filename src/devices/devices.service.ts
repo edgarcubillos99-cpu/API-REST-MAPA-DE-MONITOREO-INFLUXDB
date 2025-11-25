@@ -123,8 +123,6 @@ export class DevicesService {
           ...createDeviceDto,
         };
 
-        const now = Date.now();
-
         //SOLO ACTUALIZA EL TIMESTAMP SI EL ESTADO CAMBIO
         if (prevStatusIcmp !== newStatusIcmp) {
           const now = new Date();
@@ -670,6 +668,10 @@ export class DevicesService {
     }
   }
 
+  /**
+   * @description establece la conexión ssh al servidor
+   * @returns Promise<void>
+   */
   async sshConnection(): Promise<void> {
     return new Promise((resolve, reject) => {
       //CREAR UNA NUEVA INSTANCIA DEL CLIENTE SSH
@@ -748,7 +750,12 @@ export class DevicesService {
     });
   }
 
-  processTxtToJson(dataDir, fileContent) {
+  /**
+   * @description procesa el archivo txt a json, para obtener el dominio de cada IP
+   * @param dataDir - directorio de datos
+   * @param fileContent - contenido del archivo txt
+   */
+  processTxtToJson(dataDir: string, fileContent: string) {
     const jsonPath = path.join(dataDir, 'osnetpr.com.hosts.json');
     const dnsRecords = {};
 
@@ -776,7 +783,13 @@ export class DevicesService {
     }
   }
 
-  private async sendToRabbitMQByMapUUID(
+  /**
+   * @description envía los dispositivos a la cola de RabbitMQ por el MapUUID
+   * @param devicesId - ids de los dispositivos
+   * @param type - tipo de dispositivo (unimus o librenms)
+   * @returns void
+   */
+  async sendToRabbitMQByMapUUID(
     devicesId: string[],
     type: 'unimus' | 'librenms',
   ): Promise<void> {
@@ -828,8 +841,12 @@ export class DevicesService {
 
   //EVERY_5_MINUTES
   //0 */5 * * * *
+  /**
+   * @description maneja el cron para verificar los dispositivos en Unimus y LibreNMS
+   * @returns void
+   */
   @Cron('0 */5 * * * *')
-  async handleCronInUnimus() {
+  async handleCronInUnimusAndLibrenms() {
     this.logger.debug('Iniciando proceso cron...');
     const startTime = performance.now();
     await this.sshConnection();
