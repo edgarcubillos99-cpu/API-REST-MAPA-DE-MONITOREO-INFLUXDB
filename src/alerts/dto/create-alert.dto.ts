@@ -1,6 +1,7 @@
 import {
   ArrayUnique,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsIn,
   IsMongoId,
@@ -67,6 +68,10 @@ export class CreateAlertDto {
     message: 'severity has to be low, medium or high',
   })
   severity: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isActiveAlert?: boolean;
 
   @IsString()
   @IsOptional()

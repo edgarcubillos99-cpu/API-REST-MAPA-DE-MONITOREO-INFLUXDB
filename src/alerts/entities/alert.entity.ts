@@ -33,6 +33,9 @@ export class Alert {
   @Prop({ isRequired: true })
   severity: string;
 
+  @Prop({ isRequired: true, default: false })
+  isActiveAlert: boolean;
+
   @Prop({ isRequired: false, default: null })
   iconAlert: string;
 
