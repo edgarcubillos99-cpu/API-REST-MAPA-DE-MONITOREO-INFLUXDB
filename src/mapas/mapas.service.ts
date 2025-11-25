@@ -88,7 +88,7 @@ export class MapasService {
 
     const filter: any = { isActive: true };
     if (name) {
-      filter.$or = [{ name: { $regex: `^${name}`, $options: 'i' } }];
+      filter.name = { $regex: name, $options: 'i' };
     }
 
     const result = await this._mapaModel.aggregate([
