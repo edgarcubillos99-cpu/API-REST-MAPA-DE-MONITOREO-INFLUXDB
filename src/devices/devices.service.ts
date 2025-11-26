@@ -11,13 +11,14 @@ import { Mapa } from 'src/mapas/entities/mapa.entity';
 import { EventLog } from 'src/event-logs/entities/event-log.entity';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { STATUS } from 'src/common/enums/status.enum';
-import { EVENT_LOGS } from 'src/common/enums/event-logs.enum.ts';
+import { EVENT_LOGS } from 'src/common/enums/event-logs.enum';
 import { Cron } from '@nestjs/schedule';
 import axios from 'axios';
 import * as path from 'path';
 import * as fs from 'fs';
 import { DataSource } from 'typeorm';
 import amqp from 'amqp-connection-manager';
+import { EVENT_LOGS_TYPE } from 'src/event-logs/enums/event-logs-type.enum';
 
 const Client = require('ssh2').Client;
 
@@ -53,8 +54,9 @@ export class DevicesService {
 
     //BUSCAR EL ÚLTIMO LOG REGISTRADO PARA EL DISPOSITIVO ESPECÍFICO,
     //ORDENANDO POR LA FECHA DE CAMBIO DE ESTADO (changedAt) DE FORMA DESCENDENTE
+    //BUSCAR EN EL ARREGLO devices QUE CONTENGA EL _id DEL DISPOSITIVO
     const lastLog = await this._eventLogModel
-      .findOne({ deviceId: _id })
+      .findOne({ devices: _id })
       .sort({ changedAt: -1 })
       .lean();
 
@@ -92,11 +94,12 @@ export class DevicesService {
     }
 
     await this._eventLogModel.create({
-      deviceId: _id,
+      devices: [_id],
       Status: StatusIcmp,
       changedAt: lastChangeStatusTime,
       Time: elapsedFormatted,
       StatusTransition,
+      logType: EVENT_LOGS_TYPE.DEVICE,
       message: StatusTransition
         ? `Cantidad de tiempo ${StatusTransition?.from} ${elapsedFormatted}`
         : null,
@@ -303,18 +306,16 @@ export class DevicesService {
       }
 
       //ACTUALIZAR EL DISPOSITIVO
-      const updatedDevice = await device
-        .updateOne(devicePayload)
-        .session(session);
+      await device.updateOne(devicePayload).session(session);
 
       //CONFIRMANDO LA TRANSACCION
       await session.commitTransaction();
 
+      //OBTENER EL DEVICE ACTUALIZADO
+      const updatedDevice = await this._deviceModel.findById(device._id);
+
       //EMITIR EVENTO SOLO SI CAMBIO StatusIcmp
       if (statusIcmpChanged) {
-        //OBTENER EL DEVICE ACTUALIZADO
-        const updatedDevice = await this._deviceModel.findById(device._id);
-
         this.eventEmitter.emit(EVENT_LOGS.DEVICE_STATUS_ICMP_CHANGED, {
           _id: updatedDevice?._id,
           StatusIcmp: updatedDevice?.StatusIcmp,

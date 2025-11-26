@@ -56,7 +56,8 @@ export class EventLogsService {
 
     // return eventLog;
 
-    const eventLog = await this._eventLogModel.find({ deviceId: deviceId });
+    //BUSCAR EVENTOS DONDE EL ARREGLO devices CONTENGA EL deviceId
+    const eventLog = await this._eventLogModel.find({ devices: deviceId });
 
     return eventLog;
   }

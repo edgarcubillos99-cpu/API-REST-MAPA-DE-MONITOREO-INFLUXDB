@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
+import { Device } from 'src/devices/entities/device.entity';
 
 export class StatusTransitionSchema {
   @Prop({ type: String, required: true })
@@ -11,8 +12,11 @@ export class StatusTransitionSchema {
 
 @Schema({ timestamps: true })
 export class EventLog {
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Device', required: true })
-  deviceId: mongoose.Types.ObjectId;
+  @Prop({
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Device' }],
+    required: true,
+  })
+  devices: Device[];
 
   @Prop({ type: String, default: 'down' })
   Status: string; //up, down
@@ -30,6 +34,9 @@ export class EventLog {
   //'00:00:00.000';
   @Prop({ type: String, required: true, default: '00:00:00.000' })
   Time: string;
+
+  @Prop({ type: String, default: null })
+  logType?: string;
 
   @Prop({ type: String, default: null })
   message?: string;
