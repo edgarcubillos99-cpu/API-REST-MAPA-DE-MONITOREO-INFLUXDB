@@ -11,14 +11,85 @@ import { InjectModel } from '@nestjs/mongoose';
 import { CommonService } from 'src/common/common.service';
 import { Device } from 'src/devices/entities/device.entity';
 import { AlertsPaginationDto } from './dto/alerts-pagination.dto';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { EventLog } from 'src/event-logs/entities/event-log.entity';
+import { EVENT_LOGS } from 'src/common/enums/event-logs.enum';
+import { EVENT_LOGS_TYPE } from 'src/event-logs/enums/event-logs-type.enum';
 
 @Injectable()
 export class AlertsService {
   constructor(
     @InjectModel(Alert.name) private _alertsModel: Model<Alert>,
     @InjectModel(Device.name) private _deviceModel: Model<Device>,
+    @InjectModel(EventLog.name) private _eventLogModel: Model<EventLog>,
     private readonly commonService: CommonService,
+    private eventEmitter: EventEmitter2,
   ) {}
+
+  @OnEvent(EVENT_LOGS.ALERT_IS_ACTIVE_CHANGED)
+  async handleAlertIsActiveChangedEvent(payload: any) {
+    const { _id, isActiveAlert, lastChangeStatusTime, devices } = payload;
+
+    //BUSCAR EL ÚLTIMO LOG REGISTRADO PARA LA ALERTA ESPECÍFICA,
+    //ORDENANDO POR LA FECHA DE CAMBIO DE ESTADO (changedAt) DE FORMA DESCENDENTE
+    //FILTRAR POR alert Y logType ALERT
+    const lastLog = await this._eventLogModel
+      .findOne({
+        alert: _id,
+        logType: EVENT_LOGS_TYPE.ALERT,
+      })
+      .sort({ changedAt: -1 })
+      .lean();
+
+    //CONVERTIR isActiveAlert A STRING "up" O "down" PARA COMPARAR CON EL Status DEL LOG
+    const statusString = isActiveAlert ? 'up' : 'down';
+
+    //SI EL ESTADO NO HA CAMBIADO, NO SE REGISTRA NINGÚN LOG
+    if (lastLog && lastLog.Status === statusString) {
+      return;
+    }
+
+    let elapsedFormatted = '00:00:00.000';
+    let StatusTransition: {
+      from: string;
+      to: string;
+    } | null = null;
+
+    if (lastLog?.changedAt) {
+      const elapsedMs =
+        new Date(lastChangeStatusTime).getTime() -
+        new Date(lastLog.changedAt).getTime();
+
+      const hours = Math.floor(elapsedMs / 3600000);
+      const minutes = Math.floor((elapsedMs % 3600000) / 60000);
+      const seconds = Math.floor((elapsedMs % 60000) / 1000);
+      const milliseconds = elapsedMs % 1000;
+
+      elapsedFormatted =
+        `${hours.toString().padStart(2, '0')}:` +
+        `${minutes.toString().padStart(2, '0')}:` +
+        `${seconds.toString().padStart(2, '0')}.` +
+        `${milliseconds.toString().padStart(3, '0')}`;
+
+      StatusTransition = {
+        from: lastLog.Status,
+        to: statusString,
+      };
+    }
+
+    await this._eventLogModel.create({
+      devices: devices,
+      Status: statusString,
+      changedAt: lastChangeStatusTime,
+      Time: elapsedFormatted,
+      StatusTransition,
+      logType: EVENT_LOGS_TYPE.ALERT,
+      alert: _id,
+      message: StatusTransition
+        ? `Cantidad de tiempo ${StatusTransition?.from} ${elapsedFormatted}`
+        : null,
+    });
+  }
 
   async create(createAlertDto: CreateAlertDto) {
     try {
@@ -27,6 +98,14 @@ export class AlertsService {
 
       //CREAR LA ALERTA
       const alert = await this._alertsModel.create(createAlertDto);
+
+      //EMITIR EVENTO LOG PARA LA ALERTA CREADA
+      this.eventEmitter.emit(EVENT_LOGS.ALERT_IS_ACTIVE_CHANGED, {
+        _id: alert._id,
+        isActiveAlert: alert.isActiveAlert,
+        lastChangeStatusTime: new Date(),
+        devices: alert.devices,
+      });
 
       //RETORNAR LA ALERTA CREADA
       return alert;
@@ -83,7 +162,7 @@ export class AlertsService {
   async update(id: string, updateAlertDto: UpdateAlertDto) {
     try {
       //VALIDAR QUE LA ALERTA EXISTA
-      await this.findById(id);
+      const currentAlert = await this.findById(id);
 
       //VALIDAR QUE LOS DISPOSITIVOS EXISTAN (SI SE ENVÍAN)
       if (updateAlertDto.devices && updateAlertDto.devices.length > 0) {
@@ -96,6 +175,19 @@ export class AlertsService {
         updateAlertDto,
         { new: true },
       );
+
+      //EMITIR EVENTO LOG SI isActiveAlert HA CAMBIADO
+      if (
+        updateAlertDto.isActiveAlert !== undefined &&
+        currentAlert?.isActiveAlert !== updatedAlert?.isActiveAlert
+      ) {
+        this.eventEmitter.emit(EVENT_LOGS.ALERT_IS_ACTIVE_CHANGED, {
+          _id: updatedAlert?._id,
+          isActiveAlert: updatedAlert?.isActiveAlert,
+          lastChangeStatusTime: new Date(),
+          devices: updatedAlert?.devices,
+        });
+      }
 
       //RETORNAR LA ALERTA ACTUALIZADA
       return updatedAlert;

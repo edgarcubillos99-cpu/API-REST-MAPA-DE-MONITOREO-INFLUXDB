@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
+import { Alert } from 'src/alerts/entities/alert.entity';
 import { Device } from 'src/devices/entities/device.entity';
 
 export class StatusTransitionSchema {
@@ -40,6 +41,13 @@ export class EventLog {
 
   @Prop({ type: String, default: null })
   message?: string;
+
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Alert',
+    default: null,
+  })
+  alert?: Alert;
 }
 
 export const EventLogSchema = SchemaFactory.createForClass(EventLog);

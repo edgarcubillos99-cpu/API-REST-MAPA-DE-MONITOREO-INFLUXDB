@@ -33,7 +33,7 @@ export class Alert {
   @Prop({ isRequired: true })
   severity: string;
 
-  @Prop({ isRequired: true, default: false })
+  @Prop({ isRequired: true, default: true })
   isActiveAlert: boolean;
 
   @Prop({ isRequired: false, default: null })
