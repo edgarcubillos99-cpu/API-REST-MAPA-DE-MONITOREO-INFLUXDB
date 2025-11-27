@@ -12,7 +12,12 @@ export class EventLogsService {
   ) {}
 
   async findAll(eventLogsPaginationDto: EventLogsPaginationDto) {
-    const { limit = 10, offset = 0 } = eventLogsPaginationDto;
+    const { limit = 10, offset = 0, logType, alert } = eventLogsPaginationDto;
+
+    const filter = {
+      ...(logType && { logType: { $regex: logType, $options: 'i' } }),
+      ...(alert && { alert: alert }),
+    };
 
     // const eventLogs = await this._eventLogModel
     //   .find()
@@ -38,7 +43,7 @@ export class EventLogsService {
     // }));
 
     const eventLogs = await this._eventLogModel
-      .find()
+      .find(filter)
       .skip(offset)
       .limit(limit);
 
