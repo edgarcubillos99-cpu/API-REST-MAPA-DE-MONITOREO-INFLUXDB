@@ -37,6 +37,9 @@ export class Alert {
   isActiveAlert: boolean;
 
   @Prop({ isRequired: false, default: null })
+  alert: string;
+
+  @Prop({ isRequired: false, default: null })
   iconAlert: string;
 
   @Prop({ isRequired: false, default: null })

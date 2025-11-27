@@ -75,6 +75,10 @@ export class CreateAlertDto {
 
   @IsString()
   @IsOptional()
+  alert?: string;
+
+  @IsString()
+  @IsOptional()
   iconAlert?: string;
 
   @IsString()
