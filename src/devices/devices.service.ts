@@ -56,7 +56,7 @@ export class DevicesService {
     //ORDENANDO POR LA FECHA DE CAMBIO DE ESTADO (changedAt) DE FORMA DESCENDENTE
     //BUSCAR EN EL ARREGLO devices QUE CONTENGA EL _id DEL DISPOSITIVO
     const lastLog = await this._eventLogModel
-      .findOne({ devices: _id })
+      .findOne({ devices: _id, logType: EVENT_LOGS_TYPE.DEVICE })
       .sort({ changedAt: -1 })
       .lean();
 
