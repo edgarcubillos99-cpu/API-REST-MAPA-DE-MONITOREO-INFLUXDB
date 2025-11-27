@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { EventLog } from './entities/event-log.entity';
 import { Model } from 'mongoose';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { EventLogsPaginationDto } from './dto/event-logs-pagination.dto';
+import { EVENT_LOGS_TYPE } from './enums/event-logs-type.enum';
 
 @Injectable()
 export class EventLogsService {
@@ -56,8 +56,11 @@ export class EventLogsService {
 
     // return eventLog;
 
-    //BUSCAR EVENTOS DONDE EL ARREGLO devices CONTENGA EL deviceId
-    const eventLog = await this._eventLogModel.find({ devices: deviceId });
+    //BUSCAR EVENTOS DONDE EL ARREGLO devices CONTENGA EL deviceId Y SEAN DE TIPO DEVICE
+    const eventLog = await this._eventLogModel.find({
+      devices: deviceId,
+      logType: EVENT_LOGS_TYPE.DEVICE,
+    });
 
     return eventLog;
   }
