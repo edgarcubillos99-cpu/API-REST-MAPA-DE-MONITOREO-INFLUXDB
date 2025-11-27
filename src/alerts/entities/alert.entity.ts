@@ -36,6 +36,9 @@ export class Alert {
   @Prop({ isRequired: true, default: true })
   isActiveAlert: boolean;
 
+  @Prop({ isRequired: false, default: 0 })
+  value: number;
+
   @Prop({ isRequired: false, default: null })
   alert: string;
 
