@@ -22,17 +22,17 @@ export class AuthService {
   async login(loginAuthDto: LoginAuthDto) {
     const { email, password } = loginAuthDto;
 
-    const user = await this._userModel
-      .findOne({ email })
-      .select('+password');
+    const user = await this._userModel.findOne({ email }).select('+password');
 
     // SI NO SE ENCUENTRA UN USUARIO CON ESE EMAIL
     if (!user)
       throw new NotFoundException(`User not found with email ${email}`);
 
-    // SI EL USUARIO ESTA INACTIVO 
+    // SI EL USUARIO ESTA INACTIVO
     if (!user?.isActive)
-      throw new ForbiddenException(`Your account ${email} is currently inactive`);
+      throw new ForbiddenException(
+        `Your account ${email} is currently inactive`,
+      );
 
     const isMatch = await bcrypt.compare(password, user.password);
 
@@ -51,7 +51,9 @@ export class AuthService {
 
   private getJwtToken(payload: JwtPayload) {
     const token = this.jwtService.sign(payload, {
-      expiresIn: process.env.JWT_EXPIRES_IN,
+      //expiresIn: process.env.JWT_EXPIRES_IN,
+      //NOTA: PENDIENTE DE PROBAR CON EL EXPIRES IN DE LA VARIABLE DE ENTORNO
+      expiresIn: '1d',
       secret: process.env.JWT_SECRET,
     });
 
