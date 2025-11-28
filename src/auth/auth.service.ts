@@ -9,7 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { User } from 'src/users/entities/user.entity';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { JwtPayload } from './interfaces/jwt-payload';
 
 @Injectable()
@@ -51,9 +51,7 @@ export class AuthService {
 
   private getJwtToken(payload: JwtPayload) {
     const token = this.jwtService.sign(payload, {
-      //expiresIn: process.env.JWT_EXPIRES_IN,
-      //NOTA: PENDIENTE DE PROBAR CON EL EXPIRES IN DE LA VARIABLE DE ENTORNO
-      expiresIn: '1d',
+      expiresIn: process.env.JWT_EXPIRES_IN as JwtSignOptions['expiresIn'],
       secret: process.env.JWT_SECRET,
     });
 

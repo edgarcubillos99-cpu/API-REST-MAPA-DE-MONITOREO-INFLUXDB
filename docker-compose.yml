@@ -6,7 +6,7 @@ services:
     container_name: mdmbackend
     restart: always
     ports:
-      - "3003:${PORT}"
+      - "${PORT}:${PORT}"
     environment:
       MONGODB_CONNECT: ${MONGODB_CONNECT}
       ENTORNO: ${ENTORNO}
