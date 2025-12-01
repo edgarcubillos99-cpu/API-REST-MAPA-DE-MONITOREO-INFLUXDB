@@ -4,13 +4,13 @@ import { Device } from 'src/devices/entities/device.entity';
 
 @Schema({ timestamps: true })
 export class Alert {
-  @Prop({ isRequired: false })
+  @Prop({ required: false })
   description: string;
 
-  @Prop({ isRequired: true })
+  @Prop({ required: true })
   oid: string;
 
-  @Prop({ isRequired: true })
+  @Prop({ required: true })
   operator: string; //>, <, =, !=, >=, <=
 
   @Prop({
@@ -18,34 +18,34 @@ export class Alert {
   })
   devices: Device[];
 
-  @Prop({ isRequired: true, default: 0 })
+  @Prop({ required: true, default: 0 })
   countAlerts: number;
 
-  @Prop({ isRequired: true, default: 1 })
+  @Prop({ required: true, default: 1 })
   maxNumAlerts: number;
 
-  @Prop({ isRequired: true })
+  @Prop({ required: true })
   delay: string; //1s, 1m, 1h, 1d
 
-  @Prop({ isRequired: true, type: Date, default: Date.now() })
+  @Prop({ required: true, type: Date, default: Date.now() })
   lastAlert: Date;
 
-  @Prop({ isRequired: true })
+  @Prop({ required: true })
   severity: string;
 
-  @Prop({ isRequired: true, default: true })
+  @Prop({ required: true, default: true })
   isActiveAlert: boolean;
 
-  @Prop({ isRequired: false, default: 0 })
+  @Prop({ required: false, default: 0 })
   value: number;
 
-  @Prop({ isRequired: false, default: '' })
+  @Prop({ required: false, default: '' })
   alert: string;
 
-  @Prop({ isRequired: false, default: '' })
+  @Prop({ required: false, default: '' })
   iconAlert: string;
 
-  @Prop({ isRequired: false, default: '' })
+  @Prop({ required: false, default: '' })
   colorAlert: string;
 }
 

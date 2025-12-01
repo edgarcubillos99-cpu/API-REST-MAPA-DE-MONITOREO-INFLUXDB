@@ -13,7 +13,7 @@ export class AmountStatusDevicesSnmp {
 
 @Schema({ timestamps: true })
 export class Mapa {
-  @Prop({ isRequired: true, unique: true })
+  @Prop({ required: true, unique: true })
   name: string;
 
   @Prop()
@@ -36,7 +36,7 @@ export class Mapa {
   @Prop({ type: Number, default: 0 })
   AmountDevices: number;
 
-  @Prop({ isRequired: true })
+  @Prop({ required: true })
   StatusDevices: string;
 
   @Prop({
@@ -54,10 +54,10 @@ export class Mapa {
   @Prop({ type: Number, default: 0 })
   amountSubmaps: number;
 
-  @Prop({ isRequired: true, default: 'down' })
+  @Prop({ required: true, default: 'down' })
   statusSubmaps: string;
 
-  @Prop({ isRequired: true, default: true })
+  @Prop({ required: true, default: true })
   lock: boolean;
 }
 

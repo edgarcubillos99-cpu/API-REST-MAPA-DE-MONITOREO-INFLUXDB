@@ -4,7 +4,7 @@ import { DestinationEnlace } from './destination-enlace.entity';
 
 @Schema({ timestamps: true })
 export class Enlace {
-  @Prop({ isRequired: true })
+  @Prop({ required: true })
   description: string;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Device', required: true })
@@ -33,7 +33,7 @@ export class Enlace {
   @Prop({ type: String, default: 'unknown' })
   lastStatus: string;
 
-  @Prop({ type: Date, isRequired: true, default: Date.now() })
+  @Prop({ type: Date, required: true, default: Date.now() })
   lastChangeStatusTime: Date;
 
   @Prop({

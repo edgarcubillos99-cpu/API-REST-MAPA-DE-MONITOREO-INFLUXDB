@@ -15,7 +15,7 @@ export class SnmpSettings {
 
 @Schema({ timestamps: true })
 export class Device {
-  @Prop({ isRequired: true, unique: true })
+  @Prop({ required: true, unique: true })
   ip: string;
 
   @Prop()
@@ -24,7 +24,7 @@ export class Device {
   @Prop()
   make: string; // MikroTik, HPE, Ubiquiti, Cambium, Juniper, TpLink, ICT, TPDIN
 
-  @Prop({ isRequired: true })
+  @Prop({ required: true })
   name: string;
 
   @Prop({ type: Position, required: true, default: { x: 0, y: 0 } })
@@ -39,13 +39,13 @@ export class Device {
   })
   MapUUID: mongoose.Types.ObjectId[];
 
-  @Prop({ isRequired: true, default: 'down' })
+  @Prop({ required: true, default: 'down' })
   StatusIcmp: string;
 
   @Prop({ type: Boolean })
   Status: boolean;
 
-  @Prop({ type: Date, isRequired: true, default: Date.now() })
+  @Prop({ type: Date, required: true, default: Date.now() })
   lastChangeStatusTime: Date;
 
   @Prop({
