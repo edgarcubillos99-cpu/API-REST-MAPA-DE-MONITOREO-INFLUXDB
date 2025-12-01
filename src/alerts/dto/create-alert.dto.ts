@@ -39,6 +39,15 @@ export class CreateAlertDto {
   })
   devices: string[];
 
+  @IsArray()
+  @IsOptional()
+  @ArrayUnique()
+  @IsMongoId({
+    each: true,
+    message: 'channels has to be a valid MongoDB ObjectId',
+  })
+  channels?: string[];
+
   @IsNumber()
   @IsNumber()
   @IsOptional()

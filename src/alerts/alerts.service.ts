@@ -15,12 +15,14 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { EventLog } from 'src/event-logs/entities/event-log.entity';
 import { EVENT_LOGS } from 'src/common/enums/event-logs.enum';
 import { EVENT_LOGS_TYPE } from 'src/event-logs/enums/event-logs-type.enum';
+import { Channel } from 'src/channels/entities/channel.entity';
 
 @Injectable()
 export class AlertsService {
   constructor(
     @InjectModel(Alert.name) private _alertsModel: Model<Alert>,
     @InjectModel(Device.name) private _deviceModel: Model<Device>,
+    @InjectModel(Channel.name) private _channelModel: Model<Channel>,
     @InjectModel(EventLog.name) private _eventLogModel: Model<EventLog>,
     private readonly commonService: CommonService,
     private eventEmitter: EventEmitter2,
@@ -96,6 +98,11 @@ export class AlertsService {
       //VALIDAR QUE LOS DISPOSITIVOS EXISTAN
       await this.validateDevices(createAlertDto.devices);
 
+      //VALIDAR QUE LOS CANALES EXISTAN (SI SE ENVÍAN)
+      if (createAlertDto.channels && createAlertDto.channels.length > 0) {
+        await this.validateChannels(createAlertDto.channels);
+      }
+
       //CREAR LA ALERTA
       const alert = await this._alertsModel.create(createAlertDto);
 
@@ -147,7 +154,10 @@ export class AlertsService {
 
   async findById(id: string) {
     try {
-      const alert = await this._alertsModel.findById(id).populate('devices');
+      const alert = await this._alertsModel
+        .findById(id)
+        .populate('devices', '_id ip make name')
+        .populate('channels', '_id name description url');
 
       if (!alert) {
         throw new NotFoundException(`Alert with id ${id} not found`);
@@ -167,6 +177,11 @@ export class AlertsService {
       //VALIDAR QUE LOS DISPOSITIVOS EXISTAN (SI SE ENVÍAN)
       if (updateAlertDto.devices && updateAlertDto.devices.length > 0) {
         await this.validateDevices(updateAlertDto.devices);
+      }
+
+      //VALIDAR QUE LOS CANALES EXISTAN (SI SE ENVÍAN)
+      if (updateAlertDto.channels && updateAlertDto.channels.length > 0) {
+        await this.validateChannels(updateAlertDto.channels);
       }
 
       //ACTUALIZAR LA ALERTA
@@ -231,6 +246,30 @@ export class AlertsService {
     if (devices.length !== deviceIds.length) {
       throw new BadRequestException(
         `The following device IDs do not exist or are not active: ${missingIds.join(', ')}`,
+      );
+    }
+  }
+
+  /**
+   * @description validar que los canales existan
+   * @param channelIds: string[] - Array de IDs de canales
+   * @throws BadRequestException - Si alguno de los canales no existe
+   * @returns void - Si todos los canales existen
+   */
+  async validateChannels(channelIds: string[]): Promise<void> {
+    //VALIDAR QUE LOS CANALES EXISTAN
+    const channels = await this._channelModel.find({
+      _id: { $in: channelIds },
+    });
+
+    //ENCONTRAR LOS IDs QUE NO EXISTEN
+    const foundIds = channels.map((channel) => channel._id.toString());
+    const missingIds = channelIds.filter((id) => !foundIds.includes(id));
+
+    //VERIFICAR QUE TODOS LOS IDs EXISTAN
+    if (channels.length !== channelIds.length) {
+      throw new BadRequestException(
+        `The following channel IDs do not exist: ${missingIds.join(', ')}`,
       );
     }
   }

@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
+import { Channel } from 'src/channels/entities/channel.entity';
 import { Device } from 'src/devices/entities/device.entity';
 
 @Schema({ timestamps: true })
@@ -17,6 +18,16 @@ export class Alert {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Device' }],
   })
   devices: Device[];
+
+  @Prop({
+    type: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Channel',
+      },
+    ],
+  })
+  channels: Channel[];
 
   @Prop({ required: true, default: 0 })
   countAlerts: number;

@@ -16,6 +16,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AlertsModule } from './alerts/alerts.module';
+import { ChannelsModule } from './channels/channels.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { AlertsModule } from './alerts/alerts.module';
       },
     }),
     AlertsModule,
+    ChannelsModule,
   ],
   controllers: [AppController],
   providers: [

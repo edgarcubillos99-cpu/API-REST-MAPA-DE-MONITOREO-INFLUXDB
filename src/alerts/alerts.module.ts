@@ -9,12 +9,14 @@ import {
   EventLog,
   EventLogSchema,
 } from 'src/event-logs/entities/event-log.entity';
+import { Channel, ChannelSchema } from 'src/channels/entities/channel.entity';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Alert.name, schema: AlertSchema },
       { name: Device.name, schema: DeviceSchema },
+      { name: Channel.name, schema: ChannelSchema },
     ]),
     MongooseModule.forFeature([
       { name: EventLog.name, schema: EventLogSchema },
