@@ -21,7 +21,7 @@ async function bootstrap() {
   if (process.env.ENTORNO === 'DEV') {
     const config = new DocumentBuilder()
       .setTitle('MDM Documentation')
-      .setDescription('Mapa de monitoreo api docs')
+      .setDescription('Mapa de monitoreo de red api docs')
       .setVersion('1.0')
       .addBearerAuth()
       .build();
