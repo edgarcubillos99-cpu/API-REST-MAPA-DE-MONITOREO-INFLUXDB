@@ -116,8 +116,15 @@ export class UsersService implements OnModuleInit {
 
   async update(id: string, updateUserDto: UpdateUserDto) {
     try {
+      //VALIDAR QUE EL USUARIO EXISTA
       const user = await this.findById(id);
-      const updatedUser = await user.updateOne(updateUserDto);
+
+      //ACTUALIZAR EL USUARIO
+      const updatedUser = await this._userModel.findOneAndUpdate(
+        { _id: id },
+        updateUserDto,
+        { new: true },
+      );
 
       return updatedUser;
     } catch (error) {
