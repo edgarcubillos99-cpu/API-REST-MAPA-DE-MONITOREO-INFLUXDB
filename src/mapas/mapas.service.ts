@@ -141,62 +141,14 @@ export class MapasService {
   }
 
   async findById(id: string) {
-    const result = await this._mapaModel.aggregate([
-      {
-        $match: {
-          _id: new mongoose.Types.ObjectId(id),
-          isActive: true,
-        },
-      },
-      {
-        $lookup: {
-          from: 'devices',
-          localField: 'Devices',
-          foreignField: '_id',
-          pipeline: [
-            {
-              $project: {
-                StatusIcmp: 1,
-              },
-            },
-          ],
-          as: 'listDevices',
-        },
-      },
-      {
-        $addFields: {
-          statusDevicesIcmp: {
-            up: {
-              $size: {
-                $filter: {
-                  input: '$listDevices',
-                  as: 'device',
-                  cond: { $eq: ['$$device.StatusIcmp', 'up'] },
-                },
-              },
-            },
-            down: {
-              $size: {
-                $filter: {
-                  input: '$listDevices',
-                  as: 'device',
-                  cond: { $eq: ['$$device.StatusIcmp', 'down'] },
-                },
-              },
-            },
-          },
-        },
-      },
-      {
-        $unset: ['listDevices'],
-      },
-    ]);
+    const mapa = await this._mapaModel.findOne({
+      _id: id,
+      isActive: true,
+    });
 
-    if (!result || result.length === 0) {
-      throw new NotFoundException(`Mapa with id ${id} not found`);
-    }
+    if (!mapa) throw new NotFoundException(`Mapa with id ${id} not found`);
 
-    return result[0];
+    return mapa;
   }
 
   async findAllDevicesInMapa(id: string, paginationDto: PaginationDto) {
