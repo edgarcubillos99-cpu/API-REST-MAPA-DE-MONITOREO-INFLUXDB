@@ -39,13 +39,13 @@ export class Alert {
   @Prop({ isRequired: false, default: 0 })
   value: number;
 
-  @Prop({ isRequired: false, default: null })
+  @Prop({ isRequired: false, default: '' })
   alert: string;
 
-  @Prop({ isRequired: false, default: null })
+  @Prop({ isRequired: false, default: '' })
   iconAlert: string;
 
-  @Prop({ isRequired: false, default: null })
+  @Prop({ isRequired: false, default: '' })
   colorAlert: string;
 }
 
