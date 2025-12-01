@@ -204,7 +204,12 @@ export class MapasService {
         updateData['amountSubmaps'] = updateMapaDto.mapsInternal?.length || 0;
       }
 
-      const updatedMapa = await mapa.updateOne(updateData);
+      //ACTUALIZAR EL MAPA
+      const updatedMapa = await this._mapaModel.findOneAndUpdate(
+        { _id: id },
+        updateData,
+        { new: true },
+      );
 
       return updatedMapa;
     } catch (error) {
