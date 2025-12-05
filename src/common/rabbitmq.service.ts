@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import amqp, {
   ChannelWrapper,
   AmqpConnectionManager,
@@ -7,24 +12,40 @@ import amqp, {
 export type MessageHandler = (message: any) => Promise<void>;
 
 @Injectable()
-export class RabbitmqService implements OnModuleDestroy {
+export class RabbitmqService implements OnModuleInit, OnModuleDestroy {
   private channelWrapper: ChannelWrapper;
   private connection: AmqpConnectionManager;
   private readonly logger = new Logger(RabbitmqService.name);
   private subscribedQueues: Map<string, MessageHandler> = new Map();
+  private connectionReady: Promise<void>;
+  private resolveConnectionReady: () => void;
 
   constructor() {
-    this.initializeConnection();
+    //CREAR PROMESA PARA ESPERAR CONEXIÓN
+    this.connectionReady = new Promise((resolve) => {
+      this.resolveConnectionReady = resolve;
+    });
+  }
+
+  /**
+   * @description Hook de NestJS que se ejecuta cuando el módulo se inicializa
+   */
+  async onModuleInit(): Promise<void> {
+    await this.initializeConnection();
   }
 
   /**
    * @description Inicializa la conexión a RabbitMQ
    */
-  initializeConnection(): void {
+  async initializeConnection(): Promise<void> {
     this.connection = amqp.connect([process.env.RABBITMQ_URL]);
 
     this.connection.on('connect', () => {
       this.logger.debug('Conectado a RabbitMQ');
+    });
+
+    this.connection.on('connectFailed', (err) => {
+      this.logger.error('Error conectando a RabbitMQ', err);
     });
 
     this.connection.on('disconnect', (err) => {
@@ -33,13 +54,13 @@ export class RabbitmqService implements OnModuleDestroy {
 
     this.channelWrapper = this.connection.createChannel({
       json: true,
-      setup: async (channel: any) => {
-        //SUSCRIBIRSE A TODAS LAS COLAS REGISTRADAS CUANDO SE ESTABLECE LA CONEXIÓN
-        for (const [queueName, handler] of this.subscribedQueues) {
-          await this.setupQueueConsumer(channel, queueName, handler);
-        }
-      },
+      //EL SETUP DE RECONEXIÓN SE MANEJA VIA addSetup EN subscribeToQueue
     });
+
+    //ESPERAR A QUE EL CANAL ESTÉ COMPLETAMENTE LISTO
+    await this.channelWrapper.waitForConnect();
+    this.logger.debug('Canal RabbitMQ listo');
+    this.resolveConnectionReady();
   }
 
   /**
@@ -109,6 +130,9 @@ export class RabbitmqService implements OnModuleDestroy {
     queueName: string,
     handler: MessageHandler,
   ): Promise<void> {
+    //ESPERAR A QUE LA CONEXIÓN ESTÉ LISTA
+    await this.connectionReady;
+
     //EVITAR SUSCRIBIRSE MÚLTIPLES VECES A LA MISMA COLA
     if (this.subscribedQueues.has(queueName)) {
       this.logger.warn(`Ya existe una suscripción a la cola: ${queueName}`);
@@ -120,6 +144,7 @@ export class RabbitmqService implements OnModuleDestroy {
 
     try {
       //CONFIGURAR EL CONSUMIDOR USANDO addSetup PARA MANEJAR RECONEXIONES
+      //addSetup EJECUTARÁ INMEDIATAMENTE SI EL CANAL YA EXISTE, Y TAMBIÉN EN RECONEXIONES
       await this.channelWrapper.addSetup(async (channel: any) => {
         await this.setupQueueConsumer(channel, queueName, handler);
       });
