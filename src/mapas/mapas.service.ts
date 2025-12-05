@@ -1,7 +1,9 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { CreateMapaDto } from './dto/create-mapa.dto';
 import { UpdateMapaDto } from './dto/update-mapa.dto';
@@ -10,14 +12,46 @@ import mongoose, { Model } from 'mongoose';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { CommonService } from 'src/common/common.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { STATUS } from 'src/common/enums/status.enum';
+import { RabbitmqService } from 'src/common/rabbitmq.service';
 
 @Injectable()
-export class MapasService {
+export class MapasService implements OnModuleInit {
+  private readonly logger = new Logger(MapasService.name);
+
   constructor(
     @InjectModel(Mapa.name) private _mapaModel: Model<Mapa>,
     @InjectConnection() private readonly connection: mongoose.Connection,
     private readonly commonService: CommonService,
+    private readonly rabbitmqService: RabbitmqService,
   ) {}
+
+  /**
+   * @description Hook que se ejecuta cuando el módulo se inicializa
+   * Se suscribe automáticamente a la cola
+   */
+  async onModuleInit(): Promise<void> {
+    const queueName = 'snmp-alert';
+    await this.rabbitmqService.subscribeToQueue(
+      queueName,
+      this.handleIcmpAlertMessage.bind(this),
+    );
+  }
+
+  /**
+   * @description Handler para procesar mensajes de la cola
+   * @param message - Mensaje recibido de la cola
+   */
+  async handleIcmpAlertMessage(message: any): Promise<void> {
+    //this.logger.debug(`HANDLER MESSAGE SNMP ALERT: ${JSON.stringify(message)}`);
+    //PROCESAR EL MENSAJE Y ACTUALIZAR EL STATUS DEL MAPA
+    if (message.MapUUID && Array.isArray(message.MapUUID)) {
+      //ITERAR SOBRE TODOS LOS MapUUIDs EN EL MENSAJE
+      for (const mapUUID of message.MapUUID) {
+        await this.updateMapaStatusDevices(mapUUID);
+      }
+    }
+  }
 
   async create(createMapaDto: CreateMapaDto) {
     const session = await this.connection.startSession();
@@ -149,6 +183,123 @@ export class MapasService {
     if (!mapa) throw new NotFoundException(`Mapa with id ${id} not found`);
 
     return mapa;
+  }
+
+  /**
+   * @description Obtiene el status de los dispositivos del mapa
+   * @param id - id del mapa
+   * @returns Promise<string> - STATUS.UP o STATUS.DOWN
+   */
+  async getMapaStatusDevicesIcmp(id: string) {
+    const result = await this._mapaModel.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(id),
+          isActive: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'devices',
+          localField: 'Devices',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                StatusIcmp: 1,
+              },
+            },
+          ],
+          as: 'listDevices',
+        },
+      },
+      {
+        $addFields: {
+          statusDevicesIcmp: {
+            up: {
+              $size: {
+                $filter: {
+                  input: '$listDevices',
+                  as: 'device',
+                  cond: { $eq: ['$$device.StatusIcmp', 'up'] },
+                },
+              },
+            },
+            down: {
+              $size: {
+                $filter: {
+                  input: '$listDevices',
+                  as: 'device',
+                  cond: { $eq: ['$$device.StatusIcmp', 'down'] },
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        $unset: ['listDevices'],
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          Devices: 1,
+          StatusDevices: 1,
+          statusDevicesIcmp: 1,
+        },
+      },
+    ]);
+
+    //SI NO EXISTE EL MAPA, LANZAR UN ERROR
+    if (!result || result.length === 0) {
+      //throw new NotFoundException(`Mapa with id ${id} not found`);
+      this.logger.warn(`Mapa with id ${id} not found`);
+      return STATUS.DOWN;
+    }
+
+    this.logger.debug(
+      `GET MAPA STATUS DEVICES ICMP: ${JSON.stringify(result)}`,
+    );
+    //VERIFICAR SI EL MAPA TIENE ALGUN DEVICE CON STATUS DOWN
+    if (result[0].statusDevicesIcmp.down > 0) {
+      return STATUS.DOWN;
+    }
+
+    //SI NO TIENE ALGUN DEVICE CON STATUS DOWN, RETORNAR STATUS UP
+    return STATUS.UP;
+  }
+
+  /**
+   * @description Actualiza el StatusDevices del mapa basado en los dispositivos
+   * @param mapId - Id del mapa a actualizar
+   * @returns Promise<void>
+   */
+  async updateMapaStatusDevices(mapId: string): Promise<void> {
+    try {
+      const newStatus = await this.getMapaStatusDevicesIcmp(mapId);
+      const mapa = await this._mapaModel.findById(mapId);
+
+      if (!mapa) {
+        this.logger.warn(`Mapa con id ${mapId} no encontrado`);
+        return;
+      }
+
+      //ACTUALIZAR EL STATUS DEL MAPA SI StatusDevices ES DIFERENTE AL NUEVO STATUS
+      if (newStatus !== mapa.StatusDevices) {
+        await this._mapaModel.findByIdAndUpdate(mapId, {
+          StatusDevices: newStatus,
+        });
+        this.logger.debug(
+          `Mapa ${mapa.name} (${mapId}) StatusDevices actualizado: ${mapa.StatusDevices} -> ${newStatus}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error actualizando StatusDevices del mapa ${mapId}:`,
+        error,
+      );
+    }
   }
 
   async findAllDevicesInMapa(id: string, paginationDto: PaginationDto) {
