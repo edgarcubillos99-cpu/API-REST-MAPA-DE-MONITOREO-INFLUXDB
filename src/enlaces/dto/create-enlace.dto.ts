@@ -27,6 +27,16 @@ class DeviceInterfaceDestinationDto {
   InterfaceDestino: string;
 }
 
+class WaypointDto {
+  @IsNotEmpty()
+  @IsNumber()
+  x: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  y: number;
+}
+
 export class CreateEnlaceDto {
   @IsNotEmpty()
   @IsString()
@@ -86,4 +96,37 @@ export class CreateEnlaceDto {
   @IsArray()
   @Type(() => DeviceInterfaceDestinationDto)
   DevicesInterfacesDestination: DeviceInterfaceDestinationDto[];
+
+  @ApiProperty({ type: [WaypointDto], required: false })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => WaypointDto)
+  waypoints?: WaypointDto[];
+
+  @IsOptional()
+  @IsIn([
+    'top',
+    'top-right',
+    'right',
+    'bottom-right',
+    'bottom',
+    'bottom-left',
+    'left',
+    'top-left',
+  ])
+  sourceHandle?: string;
+
+  @IsOptional()
+  @IsIn([
+    'top',
+    'top-right',
+    'right',
+    'bottom-right',
+    'bottom',
+    'bottom-left',
+    'left',
+    'top-left',
+  ])
+  targetHandle?: string;
 }

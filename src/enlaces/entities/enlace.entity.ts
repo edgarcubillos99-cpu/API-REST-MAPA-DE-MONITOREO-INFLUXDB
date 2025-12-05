@@ -44,6 +44,18 @@ export class Enlace {
 
   @Prop({ type: Boolean, default: true })
   isActive: boolean;
+
+  @Prop({
+    type: [{ x: Number, y: Number }],
+    default: [],
+  })
+  waypoints: { x: number; y: number }[];
+
+  @Prop({ type: String, default: null })
+  sourceHandle: string;
+
+  @Prop({ type: String, default: null })
+  targetHandle: string;
 }
 
 export const EnlaceSchema = SchemaFactory.createForClass(Enlace);
