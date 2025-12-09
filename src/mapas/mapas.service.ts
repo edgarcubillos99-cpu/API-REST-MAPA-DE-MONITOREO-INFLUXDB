@@ -3,7 +3,6 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-  OnModuleInit,
 } from '@nestjs/common';
 import { CreateMapaDto } from './dto/create-mapa.dto';
 import { UpdateMapaDto } from './dto/update-mapa.dto';
@@ -13,45 +12,16 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { CommonService } from 'src/common/common.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { STATUS } from 'src/common/enums/status.enum';
-import { RabbitmqService } from 'src/common/rabbitmq.service';
 
 @Injectable()
-export class MapasService implements OnModuleInit {
+export class MapasService {
   private readonly logger = new Logger(MapasService.name);
 
   constructor(
     @InjectModel(Mapa.name) private _mapaModel: Model<Mapa>,
     @InjectConnection() private readonly connection: mongoose.Connection,
     private readonly commonService: CommonService,
-    private readonly rabbitmqService: RabbitmqService,
   ) {}
-
-  /**
-   * @description Hook que se ejecuta cuando el módulo se inicializa
-   * Se suscribe automáticamente a la cola
-   */
-  async onModuleInit(): Promise<void> {
-    const queueName = 'snmp-alert';
-    await this.rabbitmqService.subscribeToQueue(
-      queueName,
-      this.handleIcmpAlertMessage.bind(this),
-    );
-  }
-
-  /**
-   * @description Handler para procesar mensajes de la cola
-   * @param message - Mensaje recibido de la cola
-   */
-  async handleIcmpAlertMessage(message: any): Promise<void> {
-    //this.logger.debug(`HANDLER MESSAGE SNMP ALERT: ${JSON.stringify(message)}`);
-    //PROCESAR EL MENSAJE Y ACTUALIZAR EL STATUS DEL MAPA
-    if (message.MapUUID && Array.isArray(message.MapUUID)) {
-      //ITERAR SOBRE TODOS LOS MapUUIDs EN EL MENSAJE
-      for (const mapUUID of message.MapUUID) {
-        await this.updateMapaStatusDevices(mapUUID);
-      }
-    }
-  }
 
   async create(createMapaDto: CreateMapaDto) {
     const session = await this.connection.startSession();
@@ -268,38 +238,6 @@ export class MapasService implements OnModuleInit {
 
     //SI NO TIENE ALGUN DEVICE CON STATUS DOWN, RETORNAR STATUS UP
     return STATUS.UP;
-  }
-
-  /**
-   * @description Actualiza el StatusDevices del mapa basado en los dispositivos
-   * @param mapId - Id del mapa a actualizar
-   * @returns Promise<void>
-   */
-  async updateMapaStatusDevices(mapId: string): Promise<void> {
-    try {
-      const newStatus = await this.getMapaStatusDevicesIcmp(mapId);
-      const mapa = await this._mapaModel.findById(mapId);
-
-      if (!mapa) {
-        this.logger.warn(`Mapa con id ${mapId} no encontrado`);
-        return;
-      }
-
-      //ACTUALIZAR EL STATUS DEL MAPA SI StatusDevices ES DIFERENTE AL NUEVO STATUS
-      if (newStatus !== mapa.StatusDevices) {
-        await this._mapaModel.findByIdAndUpdate(mapId, {
-          StatusDevices: newStatus,
-        });
-        this.logger.debug(
-          `Mapa ${mapa.name} (${mapId}) StatusDevices actualizado: ${mapa.StatusDevices} -> ${newStatus}`,
-        );
-      }
-    } catch (error) {
-      this.logger.error(
-        `Error actualizando StatusDevices del mapa ${mapId}:`,
-        error,
-      );
-    }
   }
 
   async findAllDevicesInMapa(id: string, paginationDto: PaginationDto) {
