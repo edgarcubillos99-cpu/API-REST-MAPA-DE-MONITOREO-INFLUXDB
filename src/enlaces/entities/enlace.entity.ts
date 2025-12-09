@@ -46,7 +46,7 @@ export class Enlace {
   isActive: boolean;
 
   @Prop({
-    type: [{ x: Number, y: Number }],
+    type: [{ x: Number, y: Number, _id: false }],
     default: [],
   })
   waypoints: { x: number; y: number }[];
