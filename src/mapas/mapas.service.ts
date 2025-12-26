@@ -259,7 +259,7 @@ export class MapasService {
           path: 'enlaces',
           match: { isActive: true },
           select:
-            'DeviceOrigen InterfaceOrigen DevicesInterfacesDestination tipoMedio idsnmp lastStatus isActive',
+            'DeviceOrigen InterfaceOrigen DevicesInterfacesDestination tipoMedio idsnmp lastStatus isActive sourceHandle targetHandle waypoints',
           populate: {
             path: 'DevicesInterfacesDestination',
             select: 'DeviceDestino InterfaceDestino isActive',
