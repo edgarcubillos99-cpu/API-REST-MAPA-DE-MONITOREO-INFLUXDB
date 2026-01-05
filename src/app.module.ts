@@ -17,6 +17,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AlertsModule } from './alerts/alerts.module';
 import { ChannelsModule } from './channels/channels.module';
+import { LabelsModule } from './labels/labels.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { ChannelsModule } from './channels/channels.module';
     }),
     AlertsModule,
     ChannelsModule,
+    LabelsModule,
   ],
   controllers: [AppController],
   providers: [
