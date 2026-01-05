@@ -5,7 +5,7 @@ import { Mapa } from 'src/mapas/entities/mapa.entity';
 
 @Schema({ timestamps: true })
 export class Label {
-  @Prop({ required: false })
+  @Prop({ required: false, default: 'No description' })
   description: string;
 
   @Prop({ required: true })

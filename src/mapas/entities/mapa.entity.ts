@@ -16,10 +16,10 @@ export class Mapa {
   @Prop({ required: true, unique: true })
   name: string;
 
-  @Prop()
+  @Prop({ required: false, default: '0' })
   latitude: string;
 
-  @Prop()
+  @Prop({ required: false, default: '0' })
   longitude: string;
 
   @Prop({ type: Position, required: true, default: { x: 0, y: 0 } })
