@@ -18,6 +18,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AlertsModule } from './alerts/alerts.module';
 import { ChannelsModule } from './channels/channels.module';
 import { LabelsModule } from './labels/labels.module';
+import { UbersmithModule } from './ubersmith/ubersmith.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { LabelsModule } from './labels/labels.module';
     AlertsModule,
     ChannelsModule,
     LabelsModule,
+    UbersmithModule,
   ],
   controllers: [AppController],
   providers: [
