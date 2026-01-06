@@ -86,7 +86,7 @@ export class CreateAlertDto {
   @IsOptional()
   alert?: string;
 
-  @IsString()
+  @IsNumber()
   @IsOptional()
   value?: number;
 
