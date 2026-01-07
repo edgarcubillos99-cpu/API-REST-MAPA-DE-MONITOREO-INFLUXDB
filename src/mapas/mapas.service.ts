@@ -280,9 +280,9 @@ export class MapasService {
   }
 
   async update(id: string, updateMapaDto: UpdateMapaDto) {
-    try {
-      const mapa = await this.findById(id);
+    await this.findById(id);
 
+    try {
       //VALIDAR QUE LOS MAPAS INTERNOS EXISTAN (SI SE PROPORCIONAN)
       if (updateMapaDto.mapsInternal && updateMapaDto.mapsInternal.length > 0) {
         await this.validateMapsInternal(updateMapaDto.mapsInternal);
@@ -293,7 +293,10 @@ export class MapasService {
       if (updateMapaDto.mapsInternal) {
         updateData['amountSubmaps'] = updateMapaDto.mapsInternal?.length || 0;
       }
-
+      //SI VIENE ubersmithTicketId, CAMBIAR EL STATUS A VERIFIED
+      if (updateMapaDto.ubersmithTicketId) {
+        updateData['StatusDevices'] = STATUS.VERIFIED;
+      }
       //CONSTRUIR LA OPERACIÓN DE ACTUALIZACIÓN
       const updateOperation: any = { $set: updateData };
 

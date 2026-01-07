@@ -35,7 +35,7 @@ export class CreateMapaDto {
 
   @IsNotEmpty()
   @IsString()
-  @IsIn([STATUS.UP, STATUS.DOWN])
+  @IsIn([STATUS.UP, STATUS.DOWN, STATUS.VERIFIED])
   StatusDevices: string;
 
   @IsOptional()

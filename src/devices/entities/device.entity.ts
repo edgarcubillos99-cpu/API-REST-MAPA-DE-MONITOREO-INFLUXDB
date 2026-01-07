@@ -39,7 +39,7 @@ export class Device {
   })
   MapUUID: mongoose.Types.ObjectId[];
 
-  @Prop({ required: true, default: 'down' })
+  @Prop({ required: true, default: 'unknown' })
   StatusIcmp: string;
 
   @Prop({ type: Boolean })

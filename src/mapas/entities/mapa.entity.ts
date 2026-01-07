@@ -36,13 +36,13 @@ export class Mapa {
   @Prop({ type: Number, default: 0 })
   AmountDevices: number;
 
-  @Prop({ required: true })
+  @Prop({ required: true, default: 'unknown' })
   StatusDevices: string;
 
   @Prop({
     type: AmountStatusDevicesSnmp,
     required: true,
-    default: { up: 0, down: 0 },
+    default: { up: 0, down: 0, unknown: 0, verified: 0 },
   })
   AmountStatusDevicesSnmp: AmountStatusDevicesSnmp;
 
@@ -54,7 +54,7 @@ export class Mapa {
   @Prop({ type: Number, default: 0 })
   amountSubmaps: number;
 
-  @Prop({ required: true, default: 'down' })
+  @Prop({ required: true, default: 'unknown' })
   statusSubmaps: string;
 
   @Prop({ required: true, default: true })
