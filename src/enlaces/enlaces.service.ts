@@ -266,6 +266,7 @@ export class EnlacesService {
         ifMtu: '1.3.6.1.2.1.2.2.1.4', // MTU
         ifOperStatus: '1.3.6.1.2.1.2.2.1.8', // Estado de la interfaz
         modulationSpeed: '1.3.6.1.2.1.31.1.1.1.15', // OID de velocidad de modulación (ajustar si es necesario)
+        ifAlias: '1.3.6.1.2.1.31.1.1.1.18', // Alias o descripcion de la interfaz
       };
 
       const interfaces: Record<string, any> = {};
@@ -308,6 +309,13 @@ export class EnlacesService {
                       break;
                     case 'modulationSpeed':
                       interfaces[ifIndex]['modulationspeed'] = vb.value / 10;
+                      break;
+                    case 'ifAlias':
+                      const aliasValue =
+                        vb.value instanceof Buffer
+                          ? vb.value.toString().trim()
+                          : String(vb.value).trim();
+                      interfaces[ifIndex]['ifAlias'] = aliasValue || '';
                       break;
                   }
                 }
