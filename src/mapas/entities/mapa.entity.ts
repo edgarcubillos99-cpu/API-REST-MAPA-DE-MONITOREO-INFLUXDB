@@ -59,6 +59,13 @@ export class Mapa {
 
   @Prop({ required: true, default: true })
   lock: boolean;
+
+  @Prop({ type: String, default: null })
+  ubersmithTicketId: string;
+
+  @Prop({ type: [String], default: [] })
+  listTicketsUbersmith: string[];
+
 }
 
 export const MapaSchema = SchemaFactory.createForClass(Mapa);

@@ -137,6 +137,7 @@ export class MapasService {
           lock: 1,
           createdAt: 1,
           updatedAt: 1,
+          ubersmithTicketId: 1,
         },
       },
     ]);
@@ -293,10 +294,20 @@ export class MapasService {
         updateData['amountSubmaps'] = updateMapaDto.mapsInternal?.length || 0;
       }
 
+      //CONSTRUIR LA OPERACIÓN DE ACTUALIZACIÓN
+      const updateOperation: any = { $set: updateData };
+
+      //SI VIENE ubersmithTicketId, AGREGARLO AL ARREGLO listTicketsUbersmith SIN DUPLICADOS
+      if (updateMapaDto.ubersmithTicketId) {
+        updateOperation.$addToSet = {
+          listTicketsUbersmith: updateMapaDto.ubersmithTicketId,
+        };
+      }
+
       //ACTUALIZAR EL MAPA
       const updatedMapa = await this._mapaModel.findOneAndUpdate(
         { _id: id },
-        updateData,
+        updateOperation,
         { new: true },
       );
 

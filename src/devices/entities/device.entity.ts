@@ -78,6 +78,13 @@ export class Device {
     percentLostPackage: number;
     sizePackage: number;
   };
+
+  @Prop({ type: String, default: null })
+  ubersmithTicketId: string;
+
+  @Prop({ type: [String], default: [] })
+  listTicketsUbersmith: string[];
+
 }
 
 export const DeviceSchema = SchemaFactory.createForClass(Device);
