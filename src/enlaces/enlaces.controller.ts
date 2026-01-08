@@ -42,8 +42,8 @@ export class EnlacesController {
 
   @Get('snmp/:ip')
   @AuthSwagger()
-  snmp(@Param('ip', ValidateIpv4Pipe) ip: string) {
-    return this.enlacesService.snmpQuerySubtree(ip);
+  snmp(@Param('ip', ValidateIpv4Pipe) ip: string, @Query('community') community?: string) {
+    return this.enlacesService.snmpQuerySubtree(ip, community);
   }
 
   @Patch(':id')
