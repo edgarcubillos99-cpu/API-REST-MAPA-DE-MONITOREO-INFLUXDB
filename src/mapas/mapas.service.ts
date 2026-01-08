@@ -12,6 +12,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { CommonService } from 'src/common/common.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { STATUS } from 'src/common/enums/status.enum';
+import { ClasificationsService } from 'src/clasifications/clasifications.service';
 
 @Injectable()
 export class MapasService {
@@ -21,6 +22,7 @@ export class MapasService {
     @InjectModel(Mapa.name) private _mapaModel: Model<Mapa>,
     @InjectConnection() private readonly connection: mongoose.Connection,
     private readonly commonService: CommonService,
+    private readonly clasificationsService: ClasificationsService,
   ) {}
 
   async create(createMapaDto: CreateMapaDto) {
@@ -306,8 +308,11 @@ export class MapasService {
         await this.validateMapsInternal(updateMapaDto.mapsInternal);
       }
 
+      //EXCLUIR classifications DEL DTO (SE MANEJA CON ENDPOINTS SEPARADOS)
+      const { classifications, ...restUpdateDto } = updateMapaDto;
+
       //SI mapsInternal VIENE EN EL UPDATE, CALCULAR amountSubmaps
-      const updateData: any = { ...updateMapaDto };
+      const updateData: any = { ...restUpdateDto };
       if (updateMapaDto.mapsInternal) {
         updateData['amountSubmaps'] = updateMapaDto.mapsInternal?.length || 0;
       }
@@ -345,6 +350,51 @@ export class MapasService {
     await mapa.updateOne({ isActive: false });
 
     return `Mapa ${mapa.name} Delete!`;
+  }
+
+  /**
+   * @description Agregar clasificaciones a un mapa (sin duplicados)
+   * @param id - ID del mapa
+   * @param classificationIds - Array de IDs de clasificaciones a agregar
+   * @returns Mapa actualizado
+   */
+  async addClassifications(id: string, classificationIds: string[]) {
+    await this.findById(id);
+    await this.clasificationsService.validateClassifications(classificationIds);
+
+    const updatedMapa = await this._mapaModel.findOneAndUpdate(
+      { _id: id },
+      {
+        $addToSet: {
+          classifications: { $each: classificationIds },
+        },
+      },
+      { new: true },
+    );
+
+    return updatedMapa;
+  }
+
+  /**
+   * @description Quitar clasificaciones de un mapa
+   * @param id - ID del mapa
+   * @param classificationIds - Array de IDs de clasificaciones a quitar
+   * @returns Mapa actualizado
+   */
+  async removeClassifications(id: string, classificationIds: string[]) {
+    await this.findById(id);
+
+    const updatedMapa = await this._mapaModel.findOneAndUpdate(
+      { _id: id },
+      {
+        $pull: {
+          classifications: { $in: classificationIds },
+        },
+      },
+      { new: true },
+    );
+
+    return updatedMapa;
   }
 
   /**

@@ -50,4 +50,13 @@ export class CreateMapaDto {
     message: 'mapsInternal debe ser un ObjectId válido de MongoDB',
   })
   mapsInternal?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsMongoId({
+    each: true,
+    message: 'classifications debe ser un ObjectId válido de MongoDB',
+  })
+  classifications?: string[];
 }

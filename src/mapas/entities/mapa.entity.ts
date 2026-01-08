@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
+import { Clasification } from 'src/clasifications/entities/clasification.entity';
 import { Position } from 'src/common/entities/position.entity';
 import { Device } from 'src/devices/entities/device.entity';
 
@@ -71,6 +72,12 @@ export class Mapa {
 
   @Prop({ type: [String], default: [] })
   listTicketsUbersmith: string[];
+
+  @Prop({
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Clasification' }],
+    default: [],
+  })
+  classifications: Clasification[];
 
 }
 

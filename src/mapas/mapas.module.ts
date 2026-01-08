@@ -4,11 +4,13 @@ import { MapasController } from './mapas.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Mapa, MapaSchema } from './entities/mapa.entity';
 import { CommonModule } from 'src/common/common.module';
+import { ClasificationsModule } from 'src/clasifications/clasifications.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Mapa.name, schema: MapaSchema }]),
     CommonModule,
+    ClasificationsModule,
   ],
   controllers: [MapasController],
   providers: [MapasService],

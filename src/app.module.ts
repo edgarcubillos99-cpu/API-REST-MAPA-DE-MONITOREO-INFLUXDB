@@ -19,6 +19,7 @@ import { AlertsModule } from './alerts/alerts.module';
 import { ChannelsModule } from './channels/channels.module';
 import { LabelsModule } from './labels/labels.module';
 import { UbersmithModule } from './ubersmith/ubersmith.module';
+import { ClasificationsModule } from './clasifications/clasifications.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { UbersmithModule } from './ubersmith/ubersmith.module';
     ChannelsModule,
     LabelsModule,
     UbersmithModule,
+    ClasificationsModule,
   ],
   controllers: [AppController],
   providers: [

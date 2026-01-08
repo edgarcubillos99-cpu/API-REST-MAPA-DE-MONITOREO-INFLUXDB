@@ -11,7 +11,8 @@ import {
 import { MapasService } from './mapas.service';
 import { CreateMapaDto } from './dto/create-mapa.dto';
 import { UpdateMapaDto } from './dto/update-mapa.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { MapaClassificationsDto } from './dto/mapa-classifications.dto';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AuthSwagger } from 'src/common/decorator/auth-swagger.decorator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { ParsemongoidPipe } from 'src/common/pipes/parse-mongoid.pipe';
@@ -55,6 +56,32 @@ export class MapasController {
     @Body() updateMapaDto: UpdateMapaDto,
   ) {
     return this.mapasService.update(id, updateMapaDto);
+  }
+
+  @Post(':id/classifications')
+  @AuthSwagger()
+  @ApiOperation({ summary: 'Agregar clasificaciones a un mapa' })
+  addClassifications(
+    @Param('id', ParsemongoidPipe) id: string,
+    @Body() mapaClassificationsDto: MapaClassificationsDto,
+  ) {
+    return this.mapasService.addClassifications(
+      id,
+      mapaClassificationsDto.classificationIds,
+    );
+  }
+
+  @Delete(':id/classifications')
+  @AuthSwagger()
+  @ApiOperation({ summary: 'Quitar clasificaciones de un mapa' })
+  removeClassifications(
+    @Param('id', ParsemongoidPipe) id: string,
+    @Body() mapaClassificationsDto: MapaClassificationsDto,
+  ) {
+    return this.mapasService.removeClassifications(
+      id,
+      mapaClassificationsDto.classificationIds,
+    );
   }
 
   @Delete(':id')
