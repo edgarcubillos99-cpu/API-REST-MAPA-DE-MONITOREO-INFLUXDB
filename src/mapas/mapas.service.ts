@@ -161,11 +161,11 @@ export class MapasService {
    * @param id - id del mapa
    * @returns Promise<string> - STATUS.UP o STATUS.DOWN
    */
-  async getMapaStatusDevicesIcmp(id: string) {
+  async getMapaStatusDevicesIcmp(uuid: string) {
     const result = await this._mapaModel.aggregate([
       {
         $match: {
-          _id: new mongoose.Types.ObjectId(id),
+          _id: new mongoose.Types.ObjectId(uuid),
           isActive: true,
         },
       },
@@ -205,6 +205,24 @@ export class MapasService {
                 },
               },
             },
+            verified: {
+              $size: {
+                $filter: {
+                  input: '$listDevices',
+                  as: 'device',
+                  cond: { $eq: ['$$device.StatusIcmp', 'verified'] },
+                },
+              },
+            },
+            unknown: {
+              $size: {
+                $filter: {
+                  input: '$listDevices',
+                  as: 'device',
+                  cond: { $eq: ['$$device.StatusIcmp', 'unknown'] },
+                },
+              },
+            },
           },
         },
       },
@@ -225,7 +243,7 @@ export class MapasService {
     //SI NO EXISTE EL MAPA, LANZAR UN ERROR
     if (!result || result.length === 0) {
       //throw new NotFoundException(`Mapa with id ${id} not found`);
-      this.logger.warn(`Mapa with id ${id} not found`);
+      this.logger.warn(`Mapa with id ${uuid} not found`);
       return STATUS.DOWN;
     }
 

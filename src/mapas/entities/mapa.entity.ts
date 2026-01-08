@@ -9,6 +9,12 @@ export class AmountStatusDevicesSnmp {
 
   @Prop({ type: Number, default: 0 })
   down: number;
+
+  @Prop({ type: Number, default: 0 })
+  unknown: number;
+
+  @Prop({ type: Number, default: 0 })
+  verified: number;
 }
 
 @Schema({ timestamps: true })
