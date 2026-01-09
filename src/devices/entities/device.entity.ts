@@ -42,6 +42,9 @@ export class Device {
   @Prop({ required: true, default: 'unknown' })
   StatusIcmp: string;
 
+  @Prop({ required: true, default: 'OTHER' })
+  Type: string;
+
   @Prop({ type: Boolean })
   Status: boolean;
 
