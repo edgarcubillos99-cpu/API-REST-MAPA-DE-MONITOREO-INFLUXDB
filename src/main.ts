@@ -2,6 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { webcrypto } from 'crypto';
+
+// Polyfill para crypto.randomUUID en Node.js < 19
+if (!globalThis.crypto) {
+  globalThis.crypto = webcrypto as Crypto;
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +17,7 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
 

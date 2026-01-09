@@ -12,7 +12,6 @@ import { firstValueFrom } from 'rxjs';
 import { envs } from 'src/conf';
 import { CreateCommentUbersmithDto } from './dto/create-comment.dto';
 import { UpdateTicketsUbersmithBasicDto } from './dto/update-tickets-basic-ubersmith.dto';
-
 @Injectable()
 export class UbersmithService {
 
@@ -47,16 +46,13 @@ export class UbersmithService {
       form.append('cc', createTicketsUbersmithCircuitoDto.cc);
     }
 
-    if (attach && Array.isArray(attach) && attach.length > 0) {
-      attach.forEach((file, idx) => {
-        //CONVERT THE buffer TO A Blob
-        const blob = new Blob([file.buffer as BlobPart], {
-          type: file.mimetype,
-        });
-
-        form.append(`attach[${idx}]`, blob, file.originalname);
-      });
-    }
+    attach?.forEach((file, idx) => {
+      form.append(
+        `attach[${idx}]`,
+        new Blob([new Uint8Array(file.buffer)], { type: file.mimetype }),
+        file.originalname,
+      );
+    });
 
     try {
       const { data } = await firstValueFrom(

@@ -9,6 +9,10 @@ import {
   UploadedFiles,
   UseInterceptors,
   ParseIntPipe,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { UbersmithService } from './ubersmith.service';
 import { CreateTicketsUbersmithDto } from './dto/create-tickets-ubersmith.dto';
@@ -30,10 +34,37 @@ export class UbersmithController {
   @AuthSwagger()
   @ApiOperation({ summary: 'Crear un nuevo ticket' })
   @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        Internal_ticket: { type: 'boolean', example: false },
+        body: { type: 'string', example: 'Descripción del problema...' },
+        subject: { type: 'string', example: 'Problema de conectividad' },
+        cc: { type: 'array', items: { type: 'string' }, example: ['user@example.com'] },
+        priority: { type: 'integer', example: 1, minimum: 0, maximum: 3 },
+        impact: { type: 'integer', example: 2, minimum: 0, maximum: 4 },
+        queue: { type: 'integer', example: 71 },
+        attach: {
+          type: 'array',
+          items: { type: 'string', format: 'binary' },
+          description: 'Archivos adjuntos (máximo 40MB cada uno)',
+        },
+      },
+      required: ['Internal_ticket', 'body', 'subject'],
+    },
+  })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: false, transform: true }))
   @UseInterceptors(FilesInterceptor('attach'))
   createTicket(
     @Body() createTicketsUbersmithDto: CreateTicketsUbersmithDto,
-    @UploadedFiles() attach?: Express.Multer.File[],
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 41943040 })],
+        fileIsRequired: false,
+      }),
+    )
+    attach?: Express.Multer.File[],
   ) {
     return this.ubersmithService.createTicket(createTicketsUbersmithDto, attach);
   }
@@ -76,6 +107,23 @@ export class UbersmithController {
   @AuthSwagger()
   @ApiOperation({ summary: 'Agregar comentario a un ticket' })
   @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        body: { type: 'string', example: 'Comentario sobre el ticket...' },
+        comment: { type: 'integer', example: 1, description: '0=Email visible, 1=Comentario interno' },
+        cc: { type: 'array', items: { type: 'string' }, example: ['user@example.com'] },
+        attach: {
+          type: 'array',
+          items: { type: 'string', format: 'binary' },
+          description: 'Archivos adjuntos',
+        },
+      },
+      required: ['body', 'comment'],
+    },
+  })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: false, transform: true }))
   @UseInterceptors(FilesInterceptor('attach'))
   addComment(
     @Param('ticketId', ParseIntPipe) ticketId: number,
