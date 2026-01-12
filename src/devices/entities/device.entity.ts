@@ -39,8 +39,11 @@ export class Device {
   })
   MapUUID: mongoose.Types.ObjectId[];
 
-  @Prop({ required: true, default: 'down' })
+  @Prop({ required: true, default: 'unknown' })
   StatusIcmp: string;
+
+  @Prop({ required: true, default: 'OTHER' })
+  Type: string;
 
   @Prop({ type: Boolean })
   Status: boolean;
@@ -78,6 +81,13 @@ export class Device {
     percentLostPackage: number;
     sizePackage: number;
   };
+
+  @Prop({ type: String, default: null })
+  ubersmithTicketId: string;
+
+  @Prop({ type: [String], default: [] })
+  listTicketsUbersmith: string[];
+
 }
 
 export const DeviceSchema = SchemaFactory.createForClass(Device);

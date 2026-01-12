@@ -216,9 +216,9 @@ export class EnlacesService {
     }
   }
 
-  snmpQuerySubtreeSimple(ip: string) {
-    const community = 'osnsnmpro';
-    const session = snmp.createSession(ip, community, {
+ async snmpQuerySubtreeSimple(ip: string, communityEntry?: string) {
+    const community = communityEntry || 'osnsnmpro';
+    const session = await snmp.createSession(ip, community, {
       version: snmp.Version2c,
       timeout: 1000,
     });
@@ -252,9 +252,9 @@ export class EnlacesService {
     });
   }
 
-  snmpQuerySubtree(ip: string): Promise<any[]> {
+  snmpQuerySubtree(ip: string, communityEntry?: string): Promise<any[]> {
     return new Promise((resolve, reject) => {
-      const community = 'osnsnmpro';
+      const community = communityEntry || 'osnsnmpro';
       const session = snmp.createSession(ip, community, {
         version: snmp.Version2c,
         timeout: 1000,

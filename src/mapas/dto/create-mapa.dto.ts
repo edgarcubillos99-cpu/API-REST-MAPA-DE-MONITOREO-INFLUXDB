@@ -35,7 +35,7 @@ export class CreateMapaDto {
 
   @IsNotEmpty()
   @IsString()
-  @IsIn([STATUS.UP, STATUS.DOWN])
+  @IsIn([STATUS.UP, STATUS.DOWN, STATUS.VERIFIED])
   StatusDevices: string;
 
   @IsOptional()
@@ -50,4 +50,13 @@ export class CreateMapaDto {
     message: 'mapsInternal debe ser un ObjectId válido de MongoDB',
   })
   mapsInternal?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsMongoId({
+    each: true,
+    message: 'classifications debe ser un ObjectId válido de MongoDB',
+  })
+  classifications?: string[];
 }

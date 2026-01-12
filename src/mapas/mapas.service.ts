@@ -12,6 +12,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { CommonService } from 'src/common/common.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { STATUS } from 'src/common/enums/status.enum';
+import { ClasificationsService } from 'src/clasifications/clasifications.service';
 
 @Injectable()
 export class MapasService {
@@ -21,6 +22,7 @@ export class MapasService {
     @InjectModel(Mapa.name) private _mapaModel: Model<Mapa>,
     @InjectConnection() private readonly connection: mongoose.Connection,
     private readonly commonService: CommonService,
+    private readonly clasificationsService: ClasificationsService,
   ) {}
 
   async create(createMapaDto: CreateMapaDto) {
@@ -137,6 +139,7 @@ export class MapasService {
           lock: 1,
           createdAt: 1,
           updatedAt: 1,
+          ubersmithTicketId: 1,
         },
       },
     ]);
@@ -160,11 +163,11 @@ export class MapasService {
    * @param id - id del mapa
    * @returns Promise<string> - STATUS.UP o STATUS.DOWN
    */
-  async getMapaStatusDevicesIcmp(id: string) {
+  async getMapaStatusDevicesIcmp(uuid: string) {
     const result = await this._mapaModel.aggregate([
       {
         $match: {
-          _id: new mongoose.Types.ObjectId(id),
+          _id: new mongoose.Types.ObjectId(uuid),
           isActive: true,
         },
       },
@@ -204,6 +207,24 @@ export class MapasService {
                 },
               },
             },
+            verified: {
+              $size: {
+                $filter: {
+                  input: '$listDevices',
+                  as: 'device',
+                  cond: { $eq: ['$$device.StatusIcmp', 'verified'] },
+                },
+              },
+            },
+            unknown: {
+              $size: {
+                $filter: {
+                  input: '$listDevices',
+                  as: 'device',
+                  cond: { $eq: ['$$device.StatusIcmp', 'unknown'] },
+                },
+              },
+            },
           },
         },
       },
@@ -224,7 +245,7 @@ export class MapasService {
     //SI NO EXISTE EL MAPA, LANZAR UN ERROR
     if (!result || result.length === 0) {
       //throw new NotFoundException(`Mapa with id ${id} not found`);
-      this.logger.warn(`Mapa with id ${id} not found`);
+      this.logger.warn(`Mapa with id ${uuid} not found`);
       return STATUS.DOWN;
     }
 
@@ -279,24 +300,40 @@ export class MapasService {
   }
 
   async update(id: string, updateMapaDto: UpdateMapaDto) {
-    try {
-      const mapa = await this.findById(id);
+    await this.findById(id);
 
+    try {
       //VALIDAR QUE LOS MAPAS INTERNOS EXISTAN (SI SE PROPORCIONAN)
       if (updateMapaDto.mapsInternal && updateMapaDto.mapsInternal.length > 0) {
         await this.validateMapsInternal(updateMapaDto.mapsInternal);
       }
 
+      //EXCLUIR classifications DEL DTO (SE MANEJA CON ENDPOINTS SEPARADOS)
+      const { classifications, ...restUpdateDto } = updateMapaDto;
+
       //SI mapsInternal VIENE EN EL UPDATE, CALCULAR amountSubmaps
-      const updateData: any = { ...updateMapaDto };
+      const updateData: any = { ...restUpdateDto };
       if (updateMapaDto.mapsInternal) {
         updateData['amountSubmaps'] = updateMapaDto.mapsInternal?.length || 0;
+      }
+      //SI VIENE ubersmithTicketId, CAMBIAR EL STATUS A VERIFIED
+      if (updateMapaDto.ubersmithTicketId) {
+        updateData['StatusDevices'] = STATUS.VERIFIED;
+      }
+      //CONSTRUIR LA OPERACIÓN DE ACTUALIZACIÓN
+      const updateOperation: any = { $set: updateData };
+
+      //SI VIENE ubersmithTicketId, AGREGARLO AL ARREGLO listTicketsUbersmith SIN DUPLICADOS
+      if (updateMapaDto.ubersmithTicketId) {
+        updateOperation.$addToSet = {
+          listTicketsUbersmith: updateMapaDto.ubersmithTicketId,
+        };
       }
 
       //ACTUALIZAR EL MAPA
       const updatedMapa = await this._mapaModel.findOneAndUpdate(
         { _id: id },
-        updateData,
+        updateOperation,
         { new: true },
       );
 
@@ -313,6 +350,51 @@ export class MapasService {
     await mapa.updateOne({ isActive: false });
 
     return `Mapa ${mapa.name} Delete!`;
+  }
+
+  /**
+   * @description Agregar clasificaciones a un mapa (sin duplicados)
+   * @param id - ID del mapa
+   * @param classificationIds - Array de IDs de clasificaciones a agregar
+   * @returns Mapa actualizado
+   */
+  async addClassifications(id: string, classificationIds: string[]) {
+    await this.findById(id);
+    await this.clasificationsService.validateClassifications(classificationIds);
+
+    const updatedMapa = await this._mapaModel.findOneAndUpdate(
+      { _id: id },
+      {
+        $addToSet: {
+          classifications: { $each: classificationIds },
+        },
+      },
+      { new: true },
+    );
+
+    return updatedMapa;
+  }
+
+  /**
+   * @description Quitar clasificaciones de un mapa
+   * @param id - ID del mapa
+   * @param classificationIds - Array de IDs de clasificaciones a quitar
+   * @returns Mapa actualizado
+   */
+  async removeClassifications(id: string, classificationIds: string[]) {
+    await this.findById(id);
+
+    const updatedMapa = await this._mapaModel.findOneAndUpdate(
+      { _id: id },
+      {
+        $pull: {
+          classifications: { $in: classificationIds },
+        },
+      },
+      { new: true },
+    );
+
+    return updatedMapa;
   }
 
   /**

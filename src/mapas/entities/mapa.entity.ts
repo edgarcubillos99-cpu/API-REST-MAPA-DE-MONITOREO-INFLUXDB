@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
+import { Clasification } from 'src/clasifications/entities/clasification.entity';
 import { Position } from 'src/common/entities/position.entity';
 import { Device } from 'src/devices/entities/device.entity';
 
@@ -9,6 +10,12 @@ export class AmountStatusDevicesSnmp {
 
   @Prop({ type: Number, default: 0 })
   down: number;
+
+  @Prop({ type: Number, default: 0 })
+  unknown: number;
+
+  @Prop({ type: Number, default: 0 })
+  verified: number;
 }
 
 @Schema({ timestamps: true })
@@ -36,13 +43,13 @@ export class Mapa {
   @Prop({ type: Number, default: 0 })
   AmountDevices: number;
 
-  @Prop({ required: true })
+  @Prop({ required: true, default: 'unknown' })
   StatusDevices: string;
 
   @Prop({
     type: AmountStatusDevicesSnmp,
     required: true,
-    default: { up: 0, down: 0 },
+    default: { up: 0, down: 0, unknown: 0, verified: 0 },
   })
   AmountStatusDevicesSnmp: AmountStatusDevicesSnmp;
 
@@ -54,11 +61,24 @@ export class Mapa {
   @Prop({ type: Number, default: 0 })
   amountSubmaps: number;
 
-  @Prop({ required: true, default: 'down' })
+  @Prop({ required: true, default: 'unknown' })
   statusSubmaps: string;
 
   @Prop({ required: true, default: true })
   lock: boolean;
+
+  @Prop({ type: String, default: null })
+  ubersmithTicketId: string;
+
+  @Prop({ type: [String], default: [] })
+  listTicketsUbersmith: string[];
+
+  @Prop({
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Clasification' }],
+    default: [],
+  })
+  classifications: Clasification[];
+
 }
 
 export const MapaSchema = SchemaFactory.createForClass(Mapa);

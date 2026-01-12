@@ -97,7 +97,7 @@ export class CreateDeviceDto {
 
   @IsNotEmpty()
   @IsString()
-  @IsIn([STATUS.UP, STATUS.DOWN])
+  @IsIn([STATUS.UP, STATUS.DOWN, STATUS.VERIFIED])
   StatusIcmp: string;
 
   @IsNotEmpty()
@@ -115,4 +115,9 @@ export class CreateDeviceDto {
   @ValidateNested()
   @Type(() => SnmpSettingsDto)
   SnmpSettings?: SnmpSettingsDto;
+
+  @IsNotEmpty()
+  @IsString()
+  @IsIn(['ROUTER', 'SWITCHL2', 'SWITCHL3', 'FIREWALL', 'ACCESSPOINT', 'UPS', 'SERVER', 'STORAGE', 'OTHER'])
+  Type: string;
 }

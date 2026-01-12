@@ -305,8 +305,20 @@ export class DevicesService {
         }
       }
 
+      //CONSTRUIR LA OPERACIÓN DE ACTUALIZACIÓN
+      const updateOperation: any = { $set: devicePayload };
+
+      //SI VIENE ubersmithTicketId, AGREGARLO AL ARREGLO listTicketsUbersmith SIN DUPLICADOS
+      if (updateDeviceDto.ubersmithTicketId) {
+        updateOperation.$addToSet = {
+          listTicketsUbersmith: updateDeviceDto.ubersmithTicketId,
+        };
+      }
+ 
       //ACTUALIZAR EL DISPOSITIVO
-      await device.updateOne(devicePayload).session(session);
+      await this._deviceModel
+        .updateOne({ _id: device._id }, updateOperation)
+        .session(session);
 
       //CONFIRMANDO LA TRANSACCION
       await session.commitTransaction();
