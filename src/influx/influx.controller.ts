@@ -1,7 +1,9 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { InfluxService } from './influx.service';
+import { Public } from 'src/common/decorator/public.decorator';
 
 // Controlador para las metricas de trafico
+@Public()
 @Controller('metrics')
 export class InfluxController {
   constructor(private readonly influxService: InfluxService) {}
