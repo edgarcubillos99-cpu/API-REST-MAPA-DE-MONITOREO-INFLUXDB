@@ -33,6 +33,11 @@ const envsSchema = z.object({
   URL_UBERSMITH: z.string(),
   USERNAME_UBERSMITH: z.string(),
   PASSWORD_UBERSMITH: z.string(),
+  // InfluxDB
+  INFLUX_URL: z.string(),
+  INFLUX_TOKEN: z.string(),
+  INFLUX_ORG: z.string(),
+  INFLUX_BUCKET: z.string(),
 });
 
 const { success, error, data } = envsSchema.safeParse(process.env);
@@ -76,4 +81,9 @@ export const envs = {
   urlUbersmith: data.URL_UBERSMITH,
   usernameUbersmith: data.USERNAME_UBERSMITH,
   passwordUbersmith: data.PASSWORD_UBERSMITH,
+  // InfluxDB
+  influxUrl: data.INFLUX_URL,
+  influxToken: data.INFLUX_TOKEN,
+  influxOrg: data.INFLUX_ORG,
+  influxBucket: data.INFLUX_BUCKET,
 };

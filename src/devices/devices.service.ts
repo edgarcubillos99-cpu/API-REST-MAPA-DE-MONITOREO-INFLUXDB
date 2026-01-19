@@ -34,7 +34,7 @@ export class DevicesService {
     private readonly commonService: CommonService,
     private readonly mapasService: MapasService,
     private eventEmitter: EventEmitter2,
-    private readonly dataSource: DataSource,
+    //private readonly dataSource: DataSource,
   ) {
     const connectionRabbitMQ = amqp.connect([process.env.RABBITMQ_URL]);
     this.channelWrapper = connectionRabbitMQ.createChannel({
@@ -407,7 +407,7 @@ export class DevicesService {
     }
   }
 
-  async isDevicesInUnimus() {
+/*  async isDevicesInUnimus() {
     //LEER EL ARCHIVO JSON DE IPS A DNS
     const dnsMapPath = path.join(
       __dirname,
@@ -551,7 +551,8 @@ export class DevicesService {
       await this.sendToRabbitMQByMapUUID(devicesToQueue, 'unimus');
     }
   }
-
+*/
+/*
   async isDevicesInLibrenms() {
     const dnsMapPath = path.join(
       __dirname,
@@ -680,7 +681,7 @@ export class DevicesService {
       await this.sendToRabbitMQByMapUUID(devicesToQueue, 'librenms');
     }
   }
-
+*/
   /**
    * @description establece la conexión ssh al servidor
    * @returns Promise<void>
@@ -858,7 +859,9 @@ export class DevicesService {
    * @description maneja el cron para verificar los dispositivos en Unimus y LibreNMS
    * @returns void
    */
-  @Cron('0 */5 * * * *')
+
+  //@Cron('0 */5 * * * *')
+  /*
   async handleCronInUnimusAndLibrenms() {
     this.logger.debug('Iniciando proceso cron...');
     const startTime = performance.now();
@@ -883,5 +886,5 @@ export class DevicesService {
     this.logger.debug(
       `isDevicesInLibrenms completed - took ${endTimeLibrenms - startTimeLibrenms} milliseconds`,
     );
-  }
+  }*/
 }

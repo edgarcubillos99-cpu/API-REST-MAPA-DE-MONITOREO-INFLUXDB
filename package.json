@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "^9.5.0",
+    "@influxdata/influxdb-client": "^1.35.0",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.0",

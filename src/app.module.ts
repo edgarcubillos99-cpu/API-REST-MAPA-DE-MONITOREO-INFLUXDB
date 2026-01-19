@@ -20,6 +20,7 @@ import { ChannelsModule } from './channels/channels.module';
 import { LabelsModule } from './labels/labels.module';
 import { UbersmithModule } from './ubersmith/ubersmith.module';
 import { ClasificationsModule } from './clasifications/clasifications.module';
+import { InfluxModule } from './influx/influx.module';
 
 @Module({
   imports: [
@@ -34,8 +35,9 @@ import { ClasificationsModule } from './clasifications/clasifications.module';
     EventEmitterModule.forRoot(),
     EventLogsModule,
     ScheduleModule.forRoot(),
+    /*
     TypeOrmModule.forRoot({
-      type: 'mysql',
+//..      type: 'mysql',
       host: process.env.DB_HOST,
       port: +(process.env.DB_PORT ?? 3306),
       username: process.env.DB_USERNAME,
@@ -45,12 +47,13 @@ import { ClasificationsModule } from './clasifications/clasifications.module';
       extra: {
         connectTimeout: 30000, //30 segundos
       },
-    }),
+    }),*/
     AlertsModule,
     ChannelsModule,
     LabelsModule,
     UbersmithModule,
     ClasificationsModule,
+    InfluxModule,
   ],
   controllers: [AppController],
   providers: [
